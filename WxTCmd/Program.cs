@@ -302,9 +302,8 @@ namespace WxTCmd
                     foo.Map(t => t.Platform).Index(1);
                     foo.Map(t => t.Name).Index(2);
                     foo.Map(t => t.AdditionalInformation).Index(3);
-                    foo.Map(t => t.Expires).Index(4);
                     foo.Map(t => t.Expires)
-                        .ConvertUsing(t => t.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(2);
+                        .ConvertUsing(t => t.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(4);
 
                     csv.Configuration.RegisterClassMap(foo);
 
