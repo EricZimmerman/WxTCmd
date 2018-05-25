@@ -27,6 +27,8 @@ namespace WxTCmd
 
         private static FluentCommandLineParser<ApplicationArguments> _fluentCommandLineParser;
 
+        private static string exportExt = "tsv";
+
         private static void Main(string[] args)
         {
             //https://salt4n6.wordpress.com/2018/05/05/windows-10-timeline-forensic-artefacts/amp/?__twitter_impression=true
@@ -50,7 +52,7 @@ namespace WxTCmd
             _fluentCommandLineParser.Setup(arg => arg.CsvDirectory)
                 .As("csv")
                 .WithDescription(
-                    "Directory to save CSV (tab separated) formatted results to. Be sure to include the full path in double quotes");
+                    "Directory to save CSV formatted results to. Be sure to include the full path in double quotes");
 
 //            _fluentCommandLineParser.Setup(arg => arg.Debug)
 //                .As("Debug")
@@ -62,6 +64,11 @@ namespace WxTCmd
                 .WithDescription(
                     "The custom date/time format to use when displaying timestamps. See https://goo.gl/CNVq0k for options. Default is: yyyy-MM-dd HH:mm:ss")
                 .SetDefault("yyyy-MM-dd HH:mm:ss");
+
+            _fluentCommandLineParser.Setup(arg => arg.CsvSeparator)
+                .As("cs")
+                .WithDescription(
+                    "When true, use comma instead of tab for field separator. Default is true").SetDefault(true);
 
             var header =
                 $"WxTCmd version {Assembly.GetExecutingAssembly().GetName().Version}" +
@@ -131,6 +138,12 @@ namespace WxTCmd
                 LogManager.Configuration.LoggingRules.First().EnableLoggingForLevel(LogLevel.Debug);
                 LogManager.ReconfigExistingLoggers();
             }
+
+            if (_fluentCommandLineParser.Object.CsvSeparator)
+            {
+                exportExt = "csv";
+            }
+
 
             DumpSqliteDll();
 
@@ -283,7 +296,7 @@ namespace WxTCmd
 
                 var ts1 = DateTime.Now.ToString("yyyyMMddHHmmss");
 
-                var apesFile = $"{ts1}_Activity_PackageIDs.tsv";
+                var apesFile = $"{ts1}_Activity_PackageIDs.{exportExt}";
                 var apesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, apesFile);
 
                 using (var sw = new StreamWriter(apesOut))
@@ -307,7 +320,10 @@ namespace WxTCmd
 
                     csv.Configuration.RegisterClassMap(foo);
 
-                    csv.Configuration.Delimiter = "\t";
+                    if (_fluentCommandLineParser.Object.CsvSeparator == false)
+                    {
+                        csv.Configuration.Delimiter = "\t";
+                    }
 
                     csv.WriteHeader<ActivityPackageEntry>();
                     csv.NextRecord();
@@ -363,7 +379,10 @@ namespace WxTCmd
 
                     csv.Configuration.RegisterClassMap(foo);
 
-                    csv.Configuration.Delimiter = "\t";
+                    if (_fluentCommandLineParser.Object.CsvSeparator == false)
+                    {
+                        csv.Configuration.Delimiter = "\t";
+                    }
 
                     csv.WriteHeader<ActivityEntry>();
                     csv.NextRecord();
@@ -494,5 +513,7 @@ namespace WxTCmd
         public string DateTimeFormat { get; set; }
 
         public bool Debug { get; set; }
+
+        public bool CsvSeparator { get; set; }
     }
 }
