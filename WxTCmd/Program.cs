@@ -6,6 +6,7 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Security.Principal;
 using System.Text;
 using CsvHelper;
 using CsvHelper.TypeConversion;
@@ -28,6 +29,16 @@ namespace WxTCmd
         private static FluentCommandLineParser<ApplicationArguments> _fluentCommandLineParser;
 
         private static string exportExt = "tsv";
+
+        
+
+        public static bool IsAdministrator()
+        {
+            var identity = WindowsIdentity.GetCurrent();
+            var principal = new WindowsPrincipal(identity);
+            return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        }
+
 
         private static void Main(string[] args)
         {
@@ -132,6 +143,12 @@ namespace WxTCmd
             _logger.Info(header);
             _logger.Info("");
             _logger.Info($"Command line: {string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}\r\n");
+
+            if (IsAdministrator() == false)
+            {
+                _logger.Fatal($"Warning: Administrator privileges not found!\r\n");
+            }
+
 
             if (_fluentCommandLineParser.Object.Debug)
             {
@@ -255,7 +272,10 @@ namespace WxTCmd
 
                                 contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
 
-                                if (ci.Contains("{") & ci.Contains("}"))
+
+                                if (ci != null)
+                                {
+ if (ci.Contains("{") & ci.Contains("}"))
                                 {
                                     var start = ci.Substring(0, 5);
                                     var guid = ci.Substring(6, 36);
@@ -266,6 +286,8 @@ namespace WxTCmd
 
                                     contentInfo = $"{dti.Description} ({upContent})";
                                 }
+                                }
+                               
                             }
                         }
 
