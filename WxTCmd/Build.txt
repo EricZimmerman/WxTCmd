@@ -1,4 +1,1 @@
-﻿libz add --libz Other.libz --include *.dll --move
-libz inject-libz -assembly .\WxTCmd.exe --libz .\Other.libz --move
-libz instrument --assembly .\WxTCmd.exe --libz-resources
-(sign)
+﻿

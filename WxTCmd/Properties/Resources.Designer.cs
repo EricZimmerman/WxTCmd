@@ -61,6 +61,15 @@ namespace WxTCmd.Properties {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to x64SQLite_Interop.
+        /// </summary>
+        internal static string String {
+            get {
+                return ResourceManager.GetString("String", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized resource of type System.Byte[].
         /// </summary>
         internal static byte[] x64SQLite_Interop {
