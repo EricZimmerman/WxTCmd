@@ -183,7 +183,9 @@ namespace WxTCmd
 
                 using (var db = dbFactory.OpenDbConnection())
                 {
-                    var activityPackageIds = db.Select<ActivityPackageId>();
+                    try
+                    {
+  var activityPackageIds = db.Select<ActivityPackageId>();
 
                     _logger.Info($"Activity_PackageId entries found: {activityPackageIds.Count:N0}");
 
@@ -210,8 +212,22 @@ namespace WxTCmd
 
                         apes.Add(ape);
                     }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e.Message.Contains("no such table"))
+                        {
+                            _logger.Error("ActivityPackageId table does not exist!");
+                        }
+                        else
+                        {
+                            _logger.Error($"Error processing ActivityPackageId table: {e.Message}");
+                        }
+                    }
 
-                    var activities = db.Select<Activity>();
+                    try
+                    {
+                          var activities = db.Select<Activity>();
 
                     _logger.Info($"Activity entries found: {activities.Count:N0}");
 
@@ -219,7 +235,7 @@ namespace WxTCmd
                     {
                         var foo = act.AppId.FromJson<List<AppIdInfo>>();
 
-                        var win32 = foo.SingleOrDefault(
+                        var win32 = foo.FirstOrDefault(
                             t => t.Platform == "windows_win32" || t.Platform == "x_exe_path");
 
                         string exe;
@@ -230,7 +246,7 @@ namespace WxTCmd
                         }
                         else
                         {
-                            var wu = foo.SingleOrDefault(t => t.Platform == "windows_universal");
+                            var wu = foo.FirstOrDefault(t => t.Platform == "windows_universal");
                             if (wu != null)
                             {
                                 exe = wu.Application;
@@ -298,6 +314,21 @@ namespace WxTCmd
 
                         activitys.Add(a);
                     }
+                    }
+                    catch (Exception e)
+                    {
+                        if (e.Message.Contains("no such table"))
+                        {
+                            _logger.Error("Activity table does not exist!");
+                        }
+                        else
+                        {
+                            _logger.Error($"Error processing Activity table: {e.Message}");
+                        }
+                        
+                    }
+
+                  
                 }
 
                 //write out csvs
@@ -318,7 +349,9 @@ namespace WxTCmd
 
                 var ts1 = DateTime.Now.ToString("yyyyMMddHHmmss");
 
-                var apesFile = $"{ts1}_Activity_PackageIDs.{exportExt}";
+                if (apes.Count > 0)
+                {
+    var apesFile = $"{ts1}_Activity_PackageIDs.{exportExt}";
                 var apesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, apesFile);
 
                 using (var sw = new StreamWriter(apesOut))
@@ -353,8 +386,11 @@ namespace WxTCmd
 
                     sw.Flush();
                 }
+                }
 
-                var actsFile = $"{ts1}_Activity.tsv";
+                if (activitys.Count > 0)
+                {
+       var actsFile = $"{ts1}_Activity.tsv";
                 var actsOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, actsFile);
 
                 using (var sw = new StreamWriter(actsOut))
@@ -412,6 +448,9 @@ namespace WxTCmd
 
                     sw.Flush();
                 }
+                }
+
+         
 
             }
             catch (Exception e)
@@ -514,7 +553,17 @@ namespace WxTCmd
                 return null;
             }
 
-            var val = reader.GetInt32(columnIndex);
+            var val = 0;
+            try
+            {
+                 val = reader.GetInt32(columnIndex);
+            }
+            catch (Exception e)
+            {
+                
+            }
+
+            
 
             if (val == 0)
             {
