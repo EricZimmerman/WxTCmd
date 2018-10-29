@@ -354,7 +354,7 @@ namespace WxTCmd
     var apesFile = $"{ts1}_Activity_PackageIDs.{exportExt}";
                 var apesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, apesFile);
 
-                using (var sw = new StreamWriter(apesOut))
+                using (var sw = new StreamWriter(apesOut,false,Encoding.Unicode))
                 {
                     var csv = new CsvWriter(sw);
 
@@ -393,7 +393,7 @@ namespace WxTCmd
        var actsFile = $"{ts1}_Activity.tsv";
                 var actsOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, actsFile);
 
-                using (var sw = new StreamWriter(actsOut))
+                using (var sw = new StreamWriter(actsOut,false,Encoding.Unicode))
                 {
                     var csv = new CsvWriter(sw);
 
