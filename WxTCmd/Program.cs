@@ -274,7 +274,7 @@ namespace WxTCmd
                         var displayText = string.Empty;
                         var contentInfo = string.Empty;
 
-                        var payload = Encoding.ASCII.GetString(act.Payload);
+                        var payload = Encoding.UTF8.GetString(act.Payload);
 
                         if (payload.StartsWith("{"))
                         {
