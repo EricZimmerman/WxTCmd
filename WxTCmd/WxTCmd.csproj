@@ -77,6 +77,8 @@
     <None Include="App.config" />
   </ItemGroup>
   <ItemGroup>
+    <Content Include="Dependencies\GuidMapping.dll" />
+    <Content Include="Dependencies\GuidMapping.pdb" />
     <None Include="bin\Release\x64\SQLite.Interop.dll" />
     <None Include="bin\Release\x86\SQLite.Interop.dll" />
     <None Include="bin\x64\SQLite.Interop.dll" />
@@ -92,16 +94,16 @@
   </ItemGroup>
   <ItemGroup>
     <PackageReference Include="Costura.Fody">
-      <Version>3.2.1</Version>
+      <Version>3.3.1</Version>
     </PackageReference>
     <PackageReference Include="CsvHelper">
-      <Version>12.0.1</Version>
+      <Version>12.1.1</Version>
     </PackageReference>
     <PackageReference Include="FluentCommandLineParser">
       <Version>1.4.3</Version>
     </PackageReference>
     <PackageReference Include="Fody">
-      <Version>3.3.3</Version>
+      <Version>3.3.5</Version>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
@@ -124,5 +126,6 @@
       <Version>4.5.2</Version>
     </PackageReference>
   </ItemGroup>
+  <ItemGroup />
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
 </Project>
