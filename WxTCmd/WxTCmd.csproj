@@ -38,8 +38,9 @@
     <ApplicationIcon>Calendar Money64.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="GuidMapping">
-      <HintPath>..\..\ShellBagsExplorer\GuidMapping\bin\Release\GuidMapping.dll</HintPath>
+    <Reference Include="GuidMapping, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>Dependencies\GuidMapping.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.ComponentModel.DataAnnotations" />
