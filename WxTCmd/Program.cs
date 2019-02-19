@@ -297,7 +297,7 @@ namespace WxTCmd
                         var a = new ActivityEntry(act.Id.ToString(), exe, displayText, contentInfo,
                             act.LastModifiedTime, act.ExpirationTime, act.CreatedInCloud, act.StartTime, act.EndTime,
                             act.LastModifiedOnClient, act.OriginalLastModifiedOnClient, act.ActivityType,
-                            act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId);
+                            act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId, act.AppActivityId);
 
                         activitys.Add(a);
                     }
@@ -372,7 +372,7 @@ namespace WxTCmd
 
                 if (activitys.Count > 0)
                 {
-       var actsFile = $"{ts1}_Activity.tsv";
+       var actsFile = $"{ts1}_Activity.csv";
                 var actsOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, actsFile);
 
                 using (var sw = new StreamWriter(actsOut,false,Encoding.Unicode))
@@ -416,6 +416,7 @@ namespace WxTCmd
                     foo.Map(t => t.PackageIdHash).Index(14);
                     foo.Map(t => t.PlatformDeviceId).Index(15);
                     foo.Map(t => t.Duration).Index(16);
+                    foo.Map(t => t.AppActivityId).Index(17);
 
                     csv.Configuration.RegisterClassMap(foo);
 
