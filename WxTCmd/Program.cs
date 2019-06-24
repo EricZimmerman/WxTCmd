@@ -28,9 +28,6 @@ namespace WxTCmd
 
         private static FluentCommandLineParser<ApplicationArguments> _fluentCommandLineParser;
 
-        private static string exportExt = "tsv";
-
-        
 
         public static bool IsAdministrator()
         {
@@ -75,11 +72,6 @@ namespace WxTCmd
                 .WithDescription(
                     "The custom date/time format to use when displaying timestamps. See https://goo.gl/CNVq0k for options. Default is: yyyy-MM-dd HH:mm:ss")
                 .SetDefault("yyyy-MM-dd HH:mm:ss");
-
-            _fluentCommandLineParser.Setup(arg => arg.CsvSeparator)
-                .As("cs")
-                .WithDescription(
-                    "When true, use comma instead of tab for field separator. Default is true").SetDefault(true);
 
             var header =
                 $"WxTCmd version {Assembly.GetExecutingAssembly().GetName().Version}" +
@@ -154,11 +146,6 @@ namespace WxTCmd
             {
                 LogManager.Configuration.LoggingRules.First().EnableLoggingForLevel(LogLevel.Debug);
                 LogManager.ReconfigExistingLoggers();
-            }
-
-            if (_fluentCommandLineParser.Object.CsvSeparator)
-            {
-                exportExt = "csv";
             }
 
 
@@ -351,7 +338,7 @@ namespace WxTCmd
 
                 if (apes.Count > 0)
                 {
-    var apesFile = $"{ts1}_Activity_PackageIDs.{exportExt}";
+    var apesFile = $"{ts1}_Activity_PackageIDs.csv";
                 var apesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, apesFile);
 
                 using (var sw = new StreamWriter(apesOut,false,Encoding.Unicode))
@@ -374,11 +361,6 @@ namespace WxTCmd
                         .ConvertUsing(t => t.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(4);
 
                     csv.Configuration.RegisterClassMap(foo);
-
-                    if (_fluentCommandLineParser.Object.CsvSeparator == false)
-                    {
-                        csv.Configuration.Delimiter = "\t";
-                    }
 
                     csv.WriteHeader<ActivityPackageEntry>();
                     csv.NextRecord();
@@ -437,11 +419,6 @@ namespace WxTCmd
 
                     csv.Configuration.RegisterClassMap(foo);
 
-                    if (_fluentCommandLineParser.Object.CsvSeparator == false)
-                    {
-                        csv.Configuration.Delimiter = "\t";
-                    }
-
                     csv.WriteHeader<ActivityEntry>();
                     csv.NextRecord();
                     csv.WriteRecords(activitys);
@@ -488,7 +465,7 @@ namespace WxTCmd
                 {
                     File.Delete("SQLite.Interop.dll");
                 }
-                catch (Exception e)
+                catch (Exception )
                 {
                     _logger.Warn($"Unable to delete 'SQLite.Interop.dll'. Delete manually if needed.\r\n");
                 }
@@ -592,6 +569,5 @@ namespace WxTCmd
 
         public bool Debug { get; set; }
 
-        public bool CsvSeparator { get; set; }
     }
 }
