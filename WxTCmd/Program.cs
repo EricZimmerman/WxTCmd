@@ -390,7 +390,7 @@ namespace WxTCmd
 
                 if (activitys.Count > 0)
                 {
-       var actsFile = $"{ts1}_Activity.tsv";
+       var actsFile = $"{ts1}_Activity.csv";
                 var actsOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, actsFile);
 
                 using (var sw = new StreamWriter(actsOut,false,Encoding.Unicode))
@@ -565,7 +565,7 @@ namespace WxTCmd
             {
                  val = reader.GetInt32(columnIndex);
             }
-            catch (Exception e)
+            catch (Exception )
             {
                 
             }
