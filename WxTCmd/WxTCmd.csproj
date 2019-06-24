@@ -81,7 +81,6 @@
     <None Include="bin\Release\x86\SQLite.Interop.dll" />
     <None Include="bin\x64\SQLite.Interop.dll" />
     <None Include="bin\x86\SQLite.Interop.dll" />
-    <Content Include="Build.txt" />
     <Content Include="Calendar Money64.ico" />
   </ItemGroup>
   <ItemGroup>
