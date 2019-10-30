@@ -8,7 +8,7 @@ namespace WxTCmd.Classes
             DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, DateTimeOffset? createdInCloud,
             DateTimeOffset startTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedOnClient,
             DateTimeOffset? originalLastModifiedOnClient, int activityType, bool isLocalOnly, int eTag,
-            string packageIdHash, string platformDeviceId)
+            string packageIdHash, string platformDeviceId, string appActivityId)
         {
             Id = id;
             Executable = executable;
@@ -35,6 +35,7 @@ namespace WxTCmd.Classes
             ETag = eTag;
             PackageIdHash = packageIdHash;
             PlatformDeviceId = platformDeviceId;
+            AppActivityId = appActivityId;
         }
 
         public string Id { get; set; }
@@ -62,6 +63,8 @@ namespace WxTCmd.Classes
 
 
         public string PlatformDeviceId { get; set; }
+
+        public string AppActivityId { get; set; }
 
         public override string ToString()
         {
