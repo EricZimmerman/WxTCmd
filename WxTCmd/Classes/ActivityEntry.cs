@@ -23,10 +23,7 @@ namespace WxTCmd.Classes
             Duration = TimeSpan.Zero;
 
 
-            if (endTime != null)
-            {
-                Duration = endTime.Value.Subtract(StartTime);
-            }
+            if (endTime != null) Duration = endTime.Value.Subtract(StartTime);
 
             LastModifiedOnClient = lastModifiedOnClient;
             OriginalLastModifiedOnClient = originalLastModifiedOnClient;

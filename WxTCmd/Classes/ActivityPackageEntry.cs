@@ -40,10 +40,7 @@ namespace WxTCmd.Classes
         {
             var addlInfo = string.Empty;
 
-            if (AdditionalInformation.Length > 0)
-            {
-                addlInfo = $" Additional info: {AdditionalInformation}";
-            }
+            if (AdditionalInformation.Length > 0) addlInfo = $" Additional info: {AdditionalInformation}";
 
             return $"Platform: {Platform} Name: {Name} Expires: {Expires}{addlInfo}";
         }
