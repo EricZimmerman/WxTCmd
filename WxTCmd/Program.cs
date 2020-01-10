@@ -146,6 +146,7 @@ namespace WxTCmd
 
             var apes = new List<ActivityPackageEntry>();
             var activitys = new List<ActivityEntry>();
+            var aoes = new List<ActivityOperation>();
 
             var dbFactory = new OrmLiteConnectionFactory(
                 _fluentCommandLineParser.Object.File,
@@ -183,10 +184,10 @@ namespace WxTCmd
                                 }
                             }
 
-                            var ape = new ActivityPackageEntry(op.OpId.ToString(), op.Platform,
+                            var aoe = new ActivityOperationEntry(op.OpId.ToString(), op.Platform,
                                 op.PackageName, exeName, op.ExpirationTime);
 
-                            apes.Add(ape);
+                            aoes.Add(aoe);
                         }
                     }
                     catch (Exception e)
@@ -345,6 +346,41 @@ namespace WxTCmd
                     }
 
                 var ts1 = DateTime.Now.ToString("yyyyMMddHHmmss");
+
+                if (aoes.Count > 0)
+                {
+                    var aoesFile = $"{ts1}_ActivityOperationss.csv";
+                    var aoesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, aoesFile);
+
+                    using (var sw = new StreamWriter(aoesOut, false, Encoding.Unicode))
+                    {
+                        var csv = new CsvWriter(sw);
+
+                        var o = new TypeConverterOptions
+                        {
+                            DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
+                        };
+                        csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityOperationEntry>(o);
+
+                        var foo = csv.Configuration.AutoMap<ActivityOperationEntry>();
+
+                        foo.Map(t => t.Id).Index(0);
+                        foo.Map(t => t.Platform).Index(1);
+                        foo.Map(t => t.Name).Index(2);
+                        foo.Map(t => t.AdditionalInformation).Index(3);
+                        foo.Map(t => t.Expires)
+                            .ConvertUsing(t => t.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                            .Index(4);
+
+                        csv.Configuration.RegisterClassMap(foo);
+
+                        csv.WriteHeader<ActivityOperationEntry>();
+                        csv.NextRecord();
+                        csv.WriteRecords(aoes);
+
+                        sw.Flush();
+                    }
+                }
 
                 if (apes.Count > 0)
                 {

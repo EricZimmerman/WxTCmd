@@ -58,6 +58,7 @@
     <Compile Include="Classes\Activity.cs" />
     <Compile Include="Classes\ActivityEntry.cs" />
     <Compile Include="Classes\ActivityOperation.cs" />
+    <Compile Include="Classes\ActivityOperationEntry.cs" />
     <Compile Include="Classes\ActivityPackageEntry.cs" />
     <Compile Include="Classes\ActivityPackageId.cs" />
     <Compile Include="Classes\AppIdInfo.cs" />
