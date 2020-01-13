@@ -146,7 +146,7 @@ namespace WxTCmd
 
             var apes = new List<ActivityPackageEntry>();
             var activitys = new List<ActivityEntry>();
-            var aoes = new List<ActivityOperation>();
+            var aoes = new List<ActivityOperationEntry>();
 
             var dbFactory = new OrmLiteConnectionFactory(
                 _fluentCommandLineParser.Object.File,
@@ -170,9 +170,18 @@ namespace WxTCmd
                         {
                             var exeName = string.Empty;
 
-                            if (op.PackageName.Contains(".exe"))
+                            var AppIdInfo = op.AppId.FromJson<List<AppInfo>>();
+
+                            var idInfo = AppIdInfo.FirstOrDefault(t => t.Platform.EqualsIgnoreCase("windows_win32"));
+
+                            if (idInfo == null)
                             {
-                                var segs = op.PackageName.Split('\\');
+                                idInfo = AppIdInfo.First();
+                            }
+
+                            if (idInfo.Application.Contains(".exe"))
+                            {
+                                var segs = idInfo.Application.Split('\\');
 
                                 if (segs[0].StartsWith("{"))
                                 {
@@ -183,9 +192,12 @@ namespace WxTCmd
                                     exeName = string.Join("\\", segs);
                                 }
                             }
+                            else
+                            {
+                                exeName = idInfo.Application;
+                            }
 
-                            var aoe = new ActivityOperationEntry(op.OpId.ToString(), op.Platform,
-                                op.PackageName, exeName, op.ExpirationTime);
+                            var aoe = new ActivityOperationEntry(op.OperationOrder,op.AppId,exeName,op.ActivityType,op.LastModifiedTime,op.ExpirationTime,Encoding.ASCII.GetString(op.Payload),op.CreatedTime,op.EndTime,op.LastModifiedOnClient,op.OperationExpirationTime,op.PlatformDeviceId);
 
                             aoes.Add(aoe);
                         }
@@ -349,7 +361,7 @@ namespace WxTCmd
 
                 if (aoes.Count > 0)
                 {
-                    var aoesFile = $"{ts1}_ActivityOperationss.csv";
+                    var aoesFile = $"{ts1}_ActivityOperations.csv";
                     var aoesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, aoesFile);
 
                     using (var sw = new StreamWriter(aoesOut, false, Encoding.Unicode))
@@ -361,16 +373,22 @@ namespace WxTCmd
                             DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
                         };
                         csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityOperationEntry>(o);
+                        
 
                         var foo = csv.Configuration.AutoMap<ActivityOperationEntry>();
 
-                        foo.Map(t => t.Id).Index(0);
-                        foo.Map(t => t.Platform).Index(1);
-                        foo.Map(t => t.Name).Index(2);
-                        foo.Map(t => t.AdditionalInformation).Index(3);
-                        foo.Map(t => t.Expires)
-                            .ConvertUsing(t => t.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
-                            .Index(4);
+                        foo.Map(t => t.OperationOrder).Index(0);
+                        foo.Map(t => t.Executable).Index(1);
+                        foo.Map(t => t.ActivityType).Index(2);
+                        foo.Map(t => t.LastModifiedTime).ConvertUsing(t => t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(3);
+                        foo.Map(t => t.LastModifiedTimeOnClient).ConvertUsing(t => t.LastModifiedTimeOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(4);
+                        foo.Map(t => t.CreatedTime).ConvertUsing(t => t.CreatedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(5);
+                        foo.Map(t => t.EndTime).ConvertUsing(t => t.EndTime?.Year == 1 ? "" :  t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(6);
+                        foo.Map(t => t.ExpirationTime).ConvertUsing(t => t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(7);
+                        foo.Map(t => t.OperationExpirationTime).ConvertUsing(t => t.OperationExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
+                        foo.Map(t => t.Payload).Index(9);
+                        foo.Map(t => t.AppId).Index(10);
+                        foo.Map(t => t.PlatformDeviceId).Index(11);
 
                         csv.Configuration.RegisterClassMap(foo);
 

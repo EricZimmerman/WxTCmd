@@ -28,7 +28,7 @@ namespace WxTCmd.Classes
 
         public DateTimeOffset ExpirationTime { get; set; }
 
-        public string Payload { get; set; }
+        public byte[] Payload { get; set; }
 
         public int Priority { get; set; }
 
