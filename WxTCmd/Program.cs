@@ -366,7 +366,7 @@ namespace WxTCmd
 
                     using (var sw = new StreamWriter(aoesOut, false, Encoding.Unicode))
                     {
-                        var csv = new CsvWriter(sw);
+                        var csv = new CsvWriter(sw,CultureInfo.InvariantCulture);
 
                         var o = new TypeConverterOptions
                         {
@@ -407,7 +407,7 @@ namespace WxTCmd
 
                     using (var sw = new StreamWriter(apesOut, false, Encoding.Unicode))
                     {
-                        var csv = new CsvWriter(sw);
+                        var csv = new CsvWriter(sw,CultureInfo.InvariantCulture);
 
                         var o = new TypeConverterOptions
                         {
@@ -442,7 +442,7 @@ namespace WxTCmd
 
                     using (var sw = new StreamWriter(actsOut, false, Encoding.Unicode))
                     {
-                        var csv = new CsvWriter(sw);
+                        var csv = new CsvWriter(sw,CultureInfo.InvariantCulture);
 
                         var o = new TypeConverterOptions
                         {

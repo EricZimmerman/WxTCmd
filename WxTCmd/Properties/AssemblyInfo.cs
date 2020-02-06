@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 [assembly: AssemblyTitle("WxTCmd")]
 [assembly: AssemblyDescription("Windows 10 Timeline parser")]
 [assembly: AssemblyConfiguration("")]
-[assembly: AssemblyCompany("Eric Zimmerman")]
+[assembly: AssemblyCompany("Eric Zimmerman 501-313-3778")]
 [assembly: AssemblyProduct("WxTCmd")]
 [assembly: AssemblyCopyright("Copyright ©  2020")]
 [assembly: AssemblyTrademark("Eric R. Zimmerman 501-313-3778")]
@@ -31,5 +31,5 @@ using System.Runtime.InteropServices;
 // You can specify all the values or you can default the Build and Revision Numbers
 // by using the '*' as shown below:
 // [assembly: AssemblyVersion("1.0.*")]
-[assembly: AssemblyVersion("0.4.0.0")]
-[assembly: AssemblyFileVersion("0.4.0.0")]
+[assembly: AssemblyVersion("0.5.0.0")]
+[assembly: AssemblyFileVersion("0.5.0.0")]
