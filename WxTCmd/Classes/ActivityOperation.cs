@@ -33,15 +33,13 @@ namespace WxTCmd.Classes
         public int Priority { get; set; }
 
         public DateTimeOffset CreatedTime { get; set; }
-
-        public string Attachments { get; set; }
-
         public DateTimeOffset OperationExpirationTime { get; set; }
 
         public string PlatformDeviceId { get; set; }
 
         public string DdsDeviceId { get; set; }
-
+        
+        
         public DateTimeOffset CreatedInCloud { get; set; }
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset EndTime { get; set; }
@@ -77,4 +75,7 @@ namespace WxTCmd.Classes
             return $"Operation Order: {OperationOrder} AppId: {AppId} Expire date: {ExpirationTime}";
         }
     }
+
+  
+
 }

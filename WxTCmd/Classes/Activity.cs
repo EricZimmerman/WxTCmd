@@ -23,6 +23,7 @@ namespace WxTCmd.Classes
         public int Priority { get; set; }
         public int IsLocalOnly { get; set; }
         public string PlatformDeviceId { get; set; }
+        public string DsdDeviceId { get; set; }
         public DateTimeOffset? CreatedInCloud { get; set; }
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset? EndTime { get; set; }
@@ -32,7 +33,25 @@ namespace WxTCmd.Classes
         public byte[] ClipboardPayload { get; set; }
         public string EnterpriseId { get; set; }
         public byte[] OriginalPayload { get; set; }
+        public int UserActionState { get; set; }
+        public int IsRead { get; set; }
         public DateTimeOffset? OriginalLastModifiedOnClient { get; set; }
+        public string GroupItems { get; set; }
+        public DateTimeOffset? LocalExpirationTime { get; set; }
         public int ETag { get; set; }
+    }
+
+    /// <summary>
+    /// Pulls data from AppId here and in ActivityOperation
+    /// </summary>
+    public class AppIdInfo
+    {
+        public string Application { get; set; }
+        public string Platform { get; set; }
+
+        public override string ToString()
+        {
+            return $"Platform: {Platform} App: {Application}";
+        }
     }
 }

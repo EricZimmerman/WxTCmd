@@ -8,7 +8,7 @@ namespace WxTCmd.Classes
             DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, DateTimeOffset? createdInCloud,
             DateTimeOffset startTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedOnClient,
             DateTimeOffset? originalLastModifiedOnClient, int activityType, bool isLocalOnly, int eTag,
-            string packageIdHash, string platformDeviceId)
+            string packageIdHash, string platformDeviceId, string devicePlatform, string timeZone, string payload)
         {
             Id = id;
             Executable = executable;
@@ -22,21 +22,29 @@ namespace WxTCmd.Classes
 
             Duration = TimeSpan.Zero;
 
-
-            if (endTime != null) Duration = endTime.Value.Subtract(StartTime);
+            if (endTime != null)
+            {
+                Duration = endTime.Value.Subtract(StartTime);
+            }
 
             LastModifiedOnClient = lastModifiedOnClient;
             OriginalLastModifiedOnClient = originalLastModifiedOnClient;
-            ActivityType = activityType;
+            ActivityTypeOrg = activityType;
+            ActivityType = (ActivityTypes) activityType;
             IsLocalOnly = isLocalOnly;
             ETag = eTag;
             PackageIdHash = packageIdHash;
             PlatformDeviceId = platformDeviceId;
+            DevicePlatform = devicePlatform;
+            TimeZone = timeZone;
+            Payload = payload;
         }
 
         public string Id { get; set; }
         public string Executable { get; set; }
         public string DisplayText { get; set; }
+        public string Payload { get; set; }
+        public string ClipboardPayload { get; set; }
         public string ContentInfo { get; set; }
         public DateTimeOffset LastModifiedTime { get; set; }
         public DateTimeOffset ExpirationTime { get; set; }
@@ -49,7 +57,17 @@ namespace WxTCmd.Classes
         public DateTimeOffset LastModifiedOnClient { get; set; }
         public DateTimeOffset? OriginalLastModifiedOnClient { get; set; }
 
-        public int ActivityType { get; set; }
+        public int ActivityTypeOrg { get; set; }
+        public ActivityTypes ActivityType { get; }
+
+        public enum ActivityTypes
+        {
+            ToastNotification = 2,
+            ExecuteOpen = 5,
+            InFocus = 6,
+            CloudClipboard = 10,
+            CopyPaste = 16
+        }
 
         public bool IsLocalOnly { get; set; }
 
@@ -60,9 +78,17 @@ namespace WxTCmd.Classes
 
         public string PlatformDeviceId { get; set; }
 
+        public string DevicePlatform { get; set; }
+        public string TimeZone { get; set; }
+
         public override string ToString()
         {
             return $"Exe: {Executable} DisplayText: {DisplayText} Start: {StartTime}";
         }
     }
+
+   
+
+    
+
 }

@@ -144,7 +144,7 @@ namespace WxTCmd
             var sw1 = new Stopwatch();
             sw1.Start();
 
-            var apes = new List<ActivityPackageEntry>();
+            var apes = new List<ActivityPackageIdEntry>();
             var activitys = new List<ActivityEntry>();
             var aoes = new List<ActivityOperationEntry>();
 
@@ -156,7 +156,6 @@ namespace WxTCmd
             {
                 SqliteDialect.Provider.RegisterConverter<DateTimeOffset>(new EpochConverter());
                 SqliteDialect.Provider.RegisterConverter<DateTimeOffset?>(new EpochConverter());
-
 
                 using (var db = dbFactory.OpenDbConnection())
                 {
@@ -170,9 +169,9 @@ namespace WxTCmd
                         {
                             var exeName = string.Empty;
 
-                            var AppIdInfo = op.AppId.FromJson<List<AppInfo>>();
+                            var AppIdInfo = op.AppId.FromJson<List<AppIdInfo>>();
 
-                            var idInfo = AppIdInfo.FirstOrDefault(t => t.Platform.EqualsIgnoreCase("windows_win32"));
+                            var idInfo = AppIdInfo.FirstOrDefault(t => t.Platform.EqualsIgnoreCase("windows_win32") || t.Platform.EqualsIgnoreCase("x_exe_path"));
 
                             if (idInfo == null)
                             {
@@ -191,13 +190,59 @@ namespace WxTCmd
 
                                     exeName = string.Join("\\", segs);
                                 }
+                                else
+                                {
+                                    exeName = idInfo.Application;
+                                }
                             }
                             else
                             {
                                 exeName = idInfo.Application;
                             }
 
-                            var aoe = new ActivityOperationEntry(op.OperationOrder,op.AppId,exeName,op.ActivityType,op.LastModifiedTime,op.ExpirationTime,Encoding.ASCII.GetString(op.Payload),op.CreatedTime,op.EndTime,op.LastModifiedOnClient,op.OperationExpirationTime,op.PlatformDeviceId);
+                            var displayText = string.Empty;
+                            var contentInfo = string.Empty;
+                            var devicePlatform = string.Empty;
+                            var timeZone = string.Empty;
+
+                            var payload = Encoding.ASCII.GetString(op.Payload);
+
+                            if (payload.StartsWith("{"))
+                            {
+                                var dti = payload.FromJson<PayloadData>();
+
+                                timeZone = dti.UserTimezone;
+                                devicePlatform = dti.DevicePlatform;
+
+                                if (dti.ContentUri != null || dti.Description != null)
+                                {
+                                    displayText = $"{dti.DisplayText} ({dti.AppDisplayName})";
+
+                                    var ci = dti.ContentUri.UrlDecode();
+
+                                    contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
+
+
+                                    if (ci != null)
+                                        if (ci.Contains("{") & ci.Contains("}"))
+                                        {
+                                            var start = ci.Substring(0, 5);
+                                            var guid = ci.Substring(6, 36);
+                                            var end = ci.Substring(43);
+
+                                            var upContent =
+                                                $"{start}{GuidMapping.GuidMapping.GetDescriptionFromGuid(guid)}{end}";
+
+                                            contentInfo = $"{dti.Description} ({upContent})";
+                                        }
+                                }
+                            }
+                            else
+                            {
+                                payload = "(Binary data)";
+                            }
+
+                            var aoe = new ActivityOperationEntry(op.Id.ToString(),op.OperationOrder,op.AppId,exeName,op.ActivityType,op.LastModifiedTime,op.ExpirationTime,payload,op.CreatedTime,op.EndTime,op.LastModifiedOnClient,op.OperationExpirationTime,op.PlatformDeviceId,op.OperationType,devicePlatform,timeZone);
 
                             aoes.Add(aoe);
                         }
@@ -236,7 +281,7 @@ namespace WxTCmd
                                 }
                             }
 
-                            var ape = new ActivityPackageEntry(packageId.ActivityId.ToString(), packageId.Platform,
+                            var ape = new ActivityPackageIdEntry(packageId.ActivityId.ToString(), packageId.Platform,
                                 packageId.PackageName, exeName, packageId.ExpirationTime);
 
                             apes.Add(ape);
@@ -294,12 +339,17 @@ namespace WxTCmd
 
                             var displayText = string.Empty;
                             var contentInfo = string.Empty;
+                            var devicePlatform = string.Empty;
+                            var timeZone = string.Empty;
 
-                            var payload = Encoding.UTF8.GetString(act.Payload);
+                            var payload = Encoding.ASCII.GetString(act.Payload);
 
                             if (payload.StartsWith("{"))
                             {
-                                var dti = payload.FromJson<DisplayTextInfo>();
+                                var dti = payload.FromJson<PayloadData>();
+
+                                timeZone = dti.UserTimezone;
+                                devicePlatform = dti.DevicePlatform;
 
                                 if (dti.ContentUri != null || dti.Description != null)
                                 {
@@ -324,12 +374,16 @@ namespace WxTCmd
                                         }
                                 }
                             }
+                            else
+                            {
+                                payload = "(Binary data)";
+                            }
 
                             var a = new ActivityEntry(act.Id.ToString(), exe, displayText, contentInfo,
                                 act.LastModifiedTime, act.ExpirationTime, act.CreatedInCloud, act.StartTime,
                                 act.EndTime,
                                 act.LastModifiedOnClient, act.OriginalLastModifiedOnClient, act.ActivityType,
-                                act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId);
+                                act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId,devicePlatform,timeZone,payload);
 
                             activitys.Add(a);
                         }
@@ -413,9 +467,9 @@ namespace WxTCmd
                         {
                             DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
                         };
-                        csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityPackageEntry>(o);
+                        csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityPackageIdEntry>(o);
 
-                        var foo = csv.Configuration.AutoMap<ActivityPackageEntry>();
+                        var foo = csv.Configuration.AutoMap<ActivityPackageIdEntry>();
 
                         foo.Map(t => t.Id).Index(0);
                         foo.Map(t => t.Platform).Index(1);
@@ -427,7 +481,7 @@ namespace WxTCmd
 
                         csv.Configuration.RegisterClassMap(foo);
 
-                        csv.WriteHeader<ActivityPackageEntry>();
+                        csv.WriteHeader<ActivityPackageIdEntry>();
                         csv.NextRecord();
                         csv.WriteRecords(apes);
 

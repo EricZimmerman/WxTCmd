@@ -2,9 +2,9 @@
 
 namespace WxTCmd.Classes
 {
-    public class ActivityPackageEntry
+    public class ActivityPackageIdEntry
     {
-        public ActivityPackageEntry(string id, string platform, string name, string additionalInformation,
+        public ActivityPackageIdEntry(string id, string platform, string name, string additionalInformation,
             DateTimeOffset expires)
         {
             Id = id;
