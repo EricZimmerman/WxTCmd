@@ -204,6 +204,7 @@ namespace WxTCmd
                             var contentInfo = string.Empty;
                             var devicePlatform = string.Empty;
                             var timeZone = string.Empty;
+                            var description = string.Empty;
 
                             var payload = Encoding.ASCII.GetString(op.Payload);
 
@@ -213,6 +214,7 @@ namespace WxTCmd
 
                                 timeZone = dti.UserTimezone;
                                 devicePlatform = dti.DevicePlatform;
+                                description = dti.Description;
 
                                 if (dti.ContentUri != null || dti.Description != null)
                                 {
@@ -242,7 +244,7 @@ namespace WxTCmd
                                 payload = "(Binary data)";
                             }
 
-                            var aoe = new ActivityOperationEntry(op.Id.ToString(),op.OperationOrder,op.AppId,exeName,op.ActivityType,op.LastModifiedTime,op.ExpirationTime,payload,op.CreatedTime,op.EndTime,op.LastModifiedOnClient,op.OperationExpirationTime,op.PlatformDeviceId,op.OperationType,devicePlatform,timeZone);
+                            var aoe = new ActivityOperationEntry(op.Id.ToString(),op.OperationOrder,op.AppId,exeName,op.ActivityType,op.LastModifiedTime,op.ExpirationTime,payload,op.CreatedTime,op.EndTime,op.LastModifiedOnClient,op.OperationExpirationTime,op.PlatformDeviceId,op.OperationType,devicePlatform,timeZone,description);
 
                             aoes.Add(aoe);
                         }
@@ -358,7 +360,6 @@ namespace WxTCmd
                                     var ci = dti.ContentUri.UrlDecode();
 
                                     contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
-
 
                                     if (ci != null)
                                         if (ci.Contains("{") & ci.Contains("}"))

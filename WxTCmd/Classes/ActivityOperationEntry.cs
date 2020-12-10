@@ -8,7 +8,7 @@ namespace WxTCmd.Classes
 {
    public class ActivityOperationEntry
     {
-        public ActivityOperationEntry(string id, int operationOrder, string appId, string executable, int activityType, DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, string payload, DateTimeOffset createdTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedTimeOnClient, DateTimeOffset operationExpirationTime, string platformDeviceId, int operationType, string devicePlatform, string timeZone)
+        public ActivityOperationEntry(string id, int operationOrder, string appId, string executable, int activityType, DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, string payload, DateTimeOffset createdTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedTimeOnClient, DateTimeOffset operationExpirationTime, string platformDeviceId, int operationType, string devicePlatform, string timeZone, string description)
         {
             Id = id;
             OperationOrder = operationOrder;
@@ -39,6 +39,7 @@ namespace WxTCmd.Classes
             OperationType = operationType;
             DevicePlatform = devicePlatform;
             TimeZone = timeZone;
+            Description = description;
         }
 
         public string Id { get; set; }
@@ -49,6 +50,7 @@ namespace WxTCmd.Classes
         public string AppId { get; set; }
 
         public string Executable { get; set; }
+        public string Description { get; set; }
 
         
         public string DevicePlatform { get; set; }
