@@ -49,7 +49,7 @@ namespace WxTCmd.Classes
 
         public string GroupAppActivityId { get; set; }
 
-        public string ClipboardPayload { get; set; }
+        public byte[] ClipboardPayload { get; set; }
 
         public string EnterpriseId { get; set; }
 

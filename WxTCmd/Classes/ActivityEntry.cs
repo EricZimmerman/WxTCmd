@@ -8,7 +8,7 @@ namespace WxTCmd.Classes
             DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, DateTimeOffset? createdInCloud,
             DateTimeOffset startTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedOnClient,
             DateTimeOffset? originalLastModifiedOnClient, int activityType, bool isLocalOnly, int eTag,
-            string packageIdHash, string platformDeviceId, string devicePlatform, string timeZone, string payload)
+            string packageIdHash, string platformDeviceId, string devicePlatform, string timeZone, string payload, string clipboardPayload)
         {
             Id = id;
             Executable = executable;
@@ -20,11 +20,14 @@ namespace WxTCmd.Classes
             StartTime = startTime;
             EndTime = endTime;
 
-            Duration = TimeSpan.Zero;
+           
 
-            if (endTime != null)
+            if (endTime != null && startTime!=endTime)
             {
-                Duration = endTime.Value.Subtract(StartTime);
+                if (endTime.Value.Year > 1970)
+                {
+                    Duration = endTime.Value.Subtract(startTime);
+                }
             }
 
             LastModifiedOnClient = lastModifiedOnClient;
@@ -38,6 +41,7 @@ namespace WxTCmd.Classes
             DevicePlatform = devicePlatform;
             TimeZone = timeZone;
             Payload = payload;
+            ClipboardPayload = clipboardPayload;
         }
 
         public string Id { get; set; }
@@ -52,7 +56,7 @@ namespace WxTCmd.Classes
         public DateTimeOffset StartTime { get; set; }
         public DateTimeOffset? EndTime { get; set; }
 
-        public TimeSpan Duration { get; set; }
+        public TimeSpan? Duration { get; set; }
 
         public DateTimeOffset LastModifiedOnClient { get; set; }
         public DateTimeOffset? OriginalLastModifiedOnClient { get; set; }

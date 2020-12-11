@@ -8,7 +8,7 @@ namespace WxTCmd.Classes
 {
    public class ActivityOperationEntry
     {
-        public ActivityOperationEntry(string id, int operationOrder, string appId, string executable, int activityType, DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, string payload, DateTimeOffset createdTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedTimeOnClient, DateTimeOffset operationExpirationTime, string platformDeviceId, int operationType, string devicePlatform, string timeZone, string description)
+        public ActivityOperationEntry(string id, int operationOrder, string appId, string executable, int activityType, DateTimeOffset lastModifiedTime, DateTimeOffset expirationTime, string payload, DateTimeOffset createdTime, DateTimeOffset? endTime, DateTimeOffset lastModifiedTimeOnClient, DateTimeOffset operationExpirationTime, string platformDeviceId, int operationType, string devicePlatform, string timeZone, string description, DateTimeOffset startTime, string displayText, string clipboardPayload, string contentInfo)
         {
             Id = id;
             OperationOrder = operationOrder;
@@ -22,16 +22,17 @@ namespace WxTCmd.Classes
             CreatedTime = createdTime;
             EndTime = endTime;
 
-            Duration = TimeSpan.Zero;
 
-            if (endTime != null)
+            if (endTime != null && startTime!=endTime)
             {
                 if (endTime.Value.Year > 1970)
                 {
-                    Duration = endTime.Value.Subtract(CreatedTime);
+                    Duration = endTime.Value.Subtract(startTime);
                 }
                 
             }
+
+
 
             LastModifiedTimeOnClient = lastModifiedTimeOnClient;
             OperationExpirationTime = operationExpirationTime;
@@ -40,6 +41,10 @@ namespace WxTCmd.Classes
             DevicePlatform = devicePlatform;
             TimeZone = timeZone;
             Description = description;
+            StartTime = startTime;
+            DisplayText = displayText;
+            ClipboardPayload = clipboardPayload;
+            ContentInfo = contentInfo;
         }
 
         public string Id { get; set; }
@@ -52,6 +57,11 @@ namespace WxTCmd.Classes
         public string Executable { get; set; }
         public string Description { get; set; }
 
+        public DateTimeOffset StartTime { get; set; }
+        public string DisplayText { get; set; }
+        public string ClipboardPayload { get; set; }
+        public string ContentInfo { get; set; }
+
         
         public string DevicePlatform { get; set; }
         public string TimeZone { get; set; }
@@ -61,7 +71,7 @@ namespace WxTCmd.Classes
       public int ActivityTypeOrg { get; set; }
       public ActivityEntry.ActivityTypes ActivityType { get; }
 
-      public TimeSpan Duration { get; set; }
+      public TimeSpan? Duration { get; set; }
 
         public DateTimeOffset LastModifiedTime { get; set; }
         public DateTimeOffset ExpirationTime { get; set; }

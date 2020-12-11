@@ -11,6 +11,7 @@ using System.Text;
 using CsvHelper;
 using CsvHelper.TypeConversion;
 using Fclp;
+using Fclp.Internals.Extensions;
 using NLog;
 using NLog.Config;
 using NLog.Targets;
@@ -91,7 +92,10 @@ namespace WxTCmd
 
             var result = _fluentCommandLineParser.Parse(args);
 
-            if (result.HelpCalled) return;
+            if (result.HelpCalled)
+            {
+                return;
+            }
 
             if (result.HasErrors)
             {
@@ -131,7 +135,10 @@ namespace WxTCmd
             _logger.Info("");
             _logger.Info($"Command line: {string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}\r\n");
 
-            if (IsAdministrator() == false) _logger.Fatal("Warning: Administrator privileges not found!\r\n");
+            if (IsAdministrator() == false)
+            {
+                _logger.Fatal("Warning: Administrator privileges not found!\r\n");
+            }
 
             if (_fluentCommandLineParser.Object.Debug)
             {
@@ -171,7 +178,9 @@ namespace WxTCmd
 
                             var AppIdInfo = op.AppId.FromJson<List<AppIdInfo>>();
 
-                            var idInfo = AppIdInfo.FirstOrDefault(t => t.Platform.EqualsIgnoreCase("windows_win32") || t.Platform.EqualsIgnoreCase("x_exe_path"));
+                            var idInfo = AppIdInfo.FirstOrDefault(t =>
+                                t.Platform.EqualsIgnoreCase("windows_win32") ||
+                                t.Platform.EqualsIgnoreCase("x_exe_path"));
 
                             if (idInfo == null)
                             {
@@ -208,13 +217,21 @@ namespace WxTCmd
 
                             var payload = Encoding.ASCII.GetString(op.Payload);
 
+                            var clipPay = string.Empty;
+
+                            if (op.ClipboardPayload.IsNullOrEmpty() == false)
+                            {
+                                clipPay = Encoding.ASCII.GetString(op.ClipboardPayload);
+                            }
+
+
                             if (payload.StartsWith("{"))
                             {
                                 var dti = payload.FromJson<PayloadData>();
 
                                 timeZone = dti.UserTimezone;
                                 devicePlatform = dti.DevicePlatform;
-                                description = dti.Description;
+                                displayText = dti.DisplayText;
 
                                 if (dti.ContentUri != null || dti.Description != null)
                                 {
@@ -224,8 +241,8 @@ namespace WxTCmd
 
                                     contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
 
-
                                     if (ci != null)
+                                    {
                                         if (ci.Contains("{") & ci.Contains("}"))
                                         {
                                             var start = ci.Substring(0, 5);
@@ -237,6 +254,7 @@ namespace WxTCmd
 
                                             contentInfo = $"{dti.Description} ({upContent})";
                                         }
+                                    }
                                 }
                             }
                             else
@@ -244,7 +262,11 @@ namespace WxTCmd
                                 payload = "(Binary data)";
                             }
 
-                            var aoe = new ActivityOperationEntry(op.Id.ToString(),op.OperationOrder,op.AppId,exeName,op.ActivityType,op.LastModifiedTime,op.ExpirationTime,payload,op.CreatedTime,op.EndTime,op.LastModifiedOnClient,op.OperationExpirationTime,op.PlatformDeviceId,op.OperationType,devicePlatform,timeZone,description);
+                            var aoe = new ActivityOperationEntry(op.Id.ToString(), op.OperationOrder, op.AppId, exeName,
+                                op.ActivityType, op.LastModifiedTime, op.ExpirationTime, payload, op.CreatedTime,
+                                op.EndTime, op.LastModifiedOnClient, op.OperationExpirationTime, op.PlatformDeviceId,
+                                op.OperationType, devicePlatform, timeZone, description, op.StartTime, displayText,
+                                clipPay, contentInfo);
 
                             aoes.Add(aoe);
                         }
@@ -252,13 +274,16 @@ namespace WxTCmd
                     catch (Exception e)
                     {
                         if (e.Message.Contains("no such table"))
+                        {
                             _logger.Error("ActivityOperation table does not exist!");
+                        }
                         else
+                        {
                             _logger.Error($"Error processing ActivityOperation table: {e.Message}");
+                        }
                     }
 
 
-               
                     try
                     {
                         var activityPackageIds = db.Select<ActivityPackageId>();
@@ -292,9 +317,13 @@ namespace WxTCmd
                     catch (Exception e)
                     {
                         if (e.Message.Contains("no such table"))
+                        {
                             _logger.Error("ActivityPackageId table does not exist!");
+                        }
                         else
+                        {
                             _logger.Error($"Error processing ActivityPackageId table: {e.Message}");
+                        }
                     }
 
                     try
@@ -320,9 +349,13 @@ namespace WxTCmd
                             {
                                 var wu = foo.FirstOrDefault(t => t.Platform == "windows_universal");
                                 if (wu != null)
+                                {
                                     exe = wu.Application;
+                                }
                                 else
+                                {
                                     exe = foo.First().Application;
+                                }
                             }
 
                             if (exe.StartsWith("{"))
@@ -344,6 +377,13 @@ namespace WxTCmd
                             var devicePlatform = string.Empty;
                             var timeZone = string.Empty;
 
+                            var clipPay = string.Empty;
+
+                            if (act.ClipboardPayload.IsNullOrEmpty() == false)
+                            {
+                                clipPay = Encoding.ASCII.GetString(act.ClipboardPayload);
+                            }
+
                             var payload = Encoding.ASCII.GetString(act.Payload);
 
                             if (payload.StartsWith("{"))
@@ -352,6 +392,7 @@ namespace WxTCmd
 
                                 timeZone = dti.UserTimezone;
                                 devicePlatform = dti.DevicePlatform;
+                                displayText = dti.DisplayText;
 
                                 if (dti.ContentUri != null || dti.Description != null)
                                 {
@@ -362,6 +403,7 @@ namespace WxTCmd
                                     contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
 
                                     if (ci != null)
+                                    {
                                         if (ci.Contains("{") & ci.Contains("}"))
                                         {
                                             var start = ci.Substring(0, 5);
@@ -373,6 +415,7 @@ namespace WxTCmd
 
                                             contentInfo = $"{dti.Description} ({upContent})";
                                         }
+                                    }
                                 }
                             }
                             else
@@ -384,7 +427,8 @@ namespace WxTCmd
                                 act.LastModifiedTime, act.ExpirationTime, act.CreatedInCloud, act.StartTime,
                                 act.EndTime,
                                 act.LastModifiedOnClient, act.OriginalLastModifiedOnClient, act.ActivityType,
-                                act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId,devicePlatform,timeZone,payload);
+                                act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId, devicePlatform,
+                                timeZone, payload,   clipPay);
 
                             activitys.Add(a);
                         }
@@ -392,15 +436,20 @@ namespace WxTCmd
                     catch (Exception e)
                     {
                         if (e.Message.Contains("no such table"))
+                        {
                             _logger.Error("Activity table does not exist!");
+                        }
                         else
+                        {
                             _logger.Error($"Error processing Activity table: {e.Message}");
+                        }
                     }
                 }
 
                 //write out csvs
 
                 if (Directory.Exists(_fluentCommandLineParser.Object.CsvDirectory) == false)
+                {
                     try
                     {
                         Directory.CreateDirectory(_fluentCommandLineParser.Object.CsvDirectory);
@@ -411,6 +460,7 @@ namespace WxTCmd
                             $"There was an error creating directory '{_fluentCommandLineParser.Object.CsvDirectory}'. Error: {ex.Message} Exiting");
                         return;
                     }
+                }
 
                 var ts1 = DateTime.Now.ToString("yyyyMMddHHmmss");
 
@@ -421,29 +471,59 @@ namespace WxTCmd
 
                     using (var sw = new StreamWriter(aoesOut, false, Encoding.Unicode))
                     {
-                        var csv = new CsvWriter(sw,CultureInfo.InvariantCulture);
+                        var csv = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
                         var o = new TypeConverterOptions
                         {
                             DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
                         };
                         csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityOperationEntry>(o);
-                        
+
 
                         var foo = csv.Configuration.AutoMap<ActivityOperationEntry>();
 
-                        foo.Map(t => t.OperationOrder).Index(0);
-                        foo.Map(t => t.Executable).Index(1);
+                        foo.Map(t => t.Id).Index(0);
+                        foo.Map(t => t.ActivityTypeOrg).Index(1);
                         foo.Map(t => t.ActivityType).Index(2);
-                        foo.Map(t => t.LastModifiedTime).ConvertUsing(t => t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(3);
-                        foo.Map(t => t.LastModifiedTimeOnClient).ConvertUsing(t => t.LastModifiedTimeOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(4);
-                        foo.Map(t => t.CreatedTime).ConvertUsing(t => t.CreatedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(5);
-                        foo.Map(t => t.EndTime).ConvertUsing(t => t.EndTime?.Year == 1 ? "" :  t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(6);
-                        foo.Map(t => t.ExpirationTime).ConvertUsing(t => t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(7);
-                        foo.Map(t => t.OperationExpirationTime).ConvertUsing(t => t.OperationExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
-                        foo.Map(t => t.Payload).Index(9);
-                        foo.Map(t => t.AppId).Index(10);
-                        foo.Map(t => t.PlatformDeviceId).Index(11);
+                        foo.Map(t => t.Executable).Index(3);
+                        foo.Map(t => t.DisplayText).Index(4);
+                        foo.Map(t => t.ContentInfo).Index(5);
+                        foo.Map(t => t.Payload).Index(6);
+                        foo.Map(t => t.ClipboardPayload).Index(7);
+                        foo.Map(t => t.StartTime).ConvertUsing(t =>
+                            t.EndTime?.Year == 1
+                                ? ""
+                                : t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
+                        foo.Map(t => t.EndTime).ConvertUsing(t =>
+                            t.EndTime?.Year == 1
+                                ? ""
+                                : t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(9);
+                        foo.Map(t => t.Duration).Index(10);
+                        foo.Map(t => t.LastModifiedTime).ConvertUsing(t =>
+                            t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(11);
+                        foo.Map(t => t.LastModifiedTimeOnClient).ConvertUsing(t =>
+                                t.LastModifiedTimeOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                            .Index(12);
+                        foo.Map(t => t.CreatedTime).ConvertUsing(t =>
+                            t.CreatedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(13);
+
+                        foo.Map(t => t.ExpirationTime).ConvertUsing(t =>
+                            t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(14);
+                        foo.Map(t => t.OperationExpirationTime).ConvertUsing(t =>
+                                t.OperationExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                            .Index(15);
+
+                        foo.Map(t => t.OperationOrder).Index(16);
+
+                        foo.Map(t => t.AppId).Index(17);
+
+                        foo.Map(t => t.OperationType).Index(18);
+                        foo.Map(t => t.Description).Index(19);
+
+                        foo.Map(t => t.PlatformDeviceId).Index(20);
+                        foo.Map(t => t.DevicePlatform).Index(21);
+                        foo.Map(t => t.TimeZone).Index(22);
+
 
                         csv.Configuration.RegisterClassMap(foo);
 
@@ -462,7 +542,7 @@ namespace WxTCmd
 
                     using (var sw = new StreamWriter(apesOut, false, Encoding.Unicode))
                     {
-                        var csv = new CsvWriter(sw,CultureInfo.InvariantCulture);
+                        var csv = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
                         var o = new TypeConverterOptions
                         {
@@ -497,7 +577,7 @@ namespace WxTCmd
 
                     using (var sw = new StreamWriter(actsOut, false, Encoding.Unicode))
                     {
-                        var csv = new CsvWriter(sw,CultureInfo.InvariantCulture);
+                        var csv = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
                         var o = new TypeConverterOptions
                         {
@@ -508,35 +588,40 @@ namespace WxTCmd
                         var foo = csv.Configuration.AutoMap<ActivityEntry>();
 
                         foo.Map(t => t.Id).Index(0);
-                        foo.Map(t => t.Executable).Index(1);
-                        foo.Map(t => t.DisplayText).Index(2);
-                        foo.Map(t => t.ContentInfo).Index(3);
-
+                        foo.Map(t => t.ActivityTypeOrg).Index(1);
+                        foo.Map(t => t.ActivityType).Index(2);
+                        foo.Map(t => t.Executable).Index(3);
+                        foo.Map(t => t.DisplayText).Index(4);
+                        foo.Map(t => t.ContentInfo).Index(5);
+                        foo.Map(t => t.Payload).Index(6);
+                        foo.Map(t => t.ClipboardPayload).Index(7);
                         foo.Map(t => t.StartTime)
                             .ConvertUsing(t => t.StartTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
-                            .Index(4);
+                            .Index(8);
                         foo.Map(t => t.EndTime).ConvertUsing(t =>
-                            t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(5);
+                            t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(9);
+                        foo.Map(t => t.Duration).Index(10);
                         foo.Map(t => t.LastModifiedTime).ConvertUsing(t =>
-                            t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(6);
-                        foo.Map(t => t.ExpirationTime).ConvertUsing(t =>
-                            t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(7);
-                        foo.Map(t => t.CreatedInCloud).ConvertUsing(t =>
-                            t.CreatedInCloud?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(8);
+                            t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(11);
                         foo.Map(t => t.LastModifiedOnClient).ConvertUsing(t =>
-                            t.LastModifiedOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(9);
+                            t.LastModifiedOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(12);
                         foo.Map(t => t.OriginalLastModifiedOnClient).ConvertUsing(t =>
                                 t.OriginalLastModifiedOnClient?.ToString(_fluentCommandLineParser.Object
                                     .DateTimeFormat) +
                                 "")
-                            .Index(10);
+                            .Index(13);
+                        foo.Map(t => t.ExpirationTime).ConvertUsing(t =>
+                            t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(14);
+                        foo.Map(t => t.CreatedInCloud).ConvertUsing(t =>
+                            t.CreatedInCloud?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(15);
 
-                        foo.Map(t => t.ActivityType).Index(11);
-                        foo.Map(t => t.IsLocalOnly).Index(12);
-                        foo.Map(t => t.ETag).Index(13);
-                        foo.Map(t => t.PackageIdHash).Index(14);
-                        foo.Map(t => t.PlatformDeviceId).Index(15);
-                        foo.Map(t => t.Duration).Index(16);
+                        foo.Map(t => t.IsLocalOnly).Index(16);
+                        foo.Map(t => t.ETag).Index(17);
+                        foo.Map(t => t.PackageIdHash).Index(18);
+
+                        foo.Map(t => t.PlatformDeviceId).Index(19);
+                        foo.Map(t => t.DevicePlatform).Index(20);
+                        foo.Map(t => t.TimeZone).Index(21);
 
                         csv.Configuration.RegisterClassMap(foo);
 
@@ -551,10 +636,14 @@ namespace WxTCmd
             catch (Exception e)
             {
                 if (e.Message.Contains("file is not a database"))
+                {
                     _logger.Error(
                         $"Error processing database: '{_fluentCommandLineParser.Object.File}' is not a sqlite database");
+                }
                 else
+                {
                     _logger.Error($"Error processing database: {e.Message}");
+                }
             }
             finally
             {
@@ -572,6 +661,7 @@ namespace WxTCmd
 
 
             if (File.Exists("SQLite.Interop.dll"))
+            {
                 try
                 {
                     File.Delete("SQLite.Interop.dll");
@@ -580,6 +670,7 @@ namespace WxTCmd
                 {
                     _logger.Warn("Unable to delete 'SQLite.Interop.dll'. Delete manually if needed.\r\n");
                 }
+            }
         }
 
         private static void DumpSqliteDll()
@@ -587,14 +678,21 @@ namespace WxTCmd
             var sqllitefile = "SQLite.Interop.dll";
 
             if (Environment.Is64BitProcess)
+            {
                 File.WriteAllBytes(sqllitefile, Resources.x64SQLite_Interop);
+            }
             else
+            {
                 File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop);
+            }
         }
 
         private static void SetupNLog()
         {
-            if (File.Exists(Path.Combine(BaseDirectory, "Nlog.config"))) return;
+            if (File.Exists(Path.Combine(BaseDirectory, "Nlog.config")))
+            {
+                return;
+            }
 
             var config = new LoggingConfiguration();
             var loglevel = LogLevel.Info;
@@ -632,7 +730,10 @@ namespace WxTCmd
 
         public override object GetValue(IDataReader reader, int columnIndex, object[] values)
         {
-            if (reader.IsDBNull(columnIndex)) return null;
+            if (reader.IsDBNull(columnIndex))
+            {
+                return null;
+            }
 
             var val = 0;
             try
@@ -643,7 +744,10 @@ namespace WxTCmd
             {
             }
 
-            if (val == 0) return null;
+            if (val == 0)
+            {
+                return null;
+            }
 
             return DateTimeOffset.FromUnixTimeSeconds(val).ToUniversalTime();
         }
