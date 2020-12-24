@@ -469,7 +469,7 @@ namespace WxTCmd
                     var aoesFile = $"{ts1}_ActivityOperations.csv";
                     var aoesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, aoesFile);
 
-                    using (var sw = new StreamWriter(aoesOut, false, Encoding.Unicode))
+                    using (var sw = new StreamWriter(aoesOut, false, Encoding.UTF8))
                     {
                         var csv = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
@@ -540,7 +540,7 @@ namespace WxTCmd
                     var apesFile = $"{ts1}_Activity_PackageIDs.csv";
                     var apesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, apesFile);
 
-                    using (var sw = new StreamWriter(apesOut, false, Encoding.Unicode))
+                    using (var sw = new StreamWriter(apesOut, false, Encoding.UTF8))
                     {
                         var csv = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
@@ -575,7 +575,7 @@ namespace WxTCmd
                     var actsFile = $"{ts1}_Activity.csv";
                     var actsOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, actsFile);
 
-                    using (var sw = new StreamWriter(actsOut, false, Encoding.Unicode))
+                    using (var sw = new StreamWriter(actsOut, false, Encoding.UTF8))
                     {
                         var csv = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
