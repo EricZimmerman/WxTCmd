@@ -477,10 +477,10 @@ namespace WxTCmd
                         {
                             DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
                         };
-                        csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityOperationEntry>(o);
+                        csv.Context.TypeConverterOptionsCache.AddOptions<ActivityOperationEntry>(o);
 
 
-                        var foo = csv.Configuration.AutoMap<ActivityOperationEntry>();
+                        var foo = csv.Context.AutoMap<ActivityOperationEntry>();
 
                         foo.Map(t => t.Id).Index(0);
                         foo.Map(t => t.ActivityTypeOrg).Index(1);
@@ -490,27 +490,27 @@ namespace WxTCmd
                         foo.Map(t => t.ContentInfo).Index(5);
                         foo.Map(t => t.Payload).Index(6);
                         foo.Map(t => t.ClipboardPayload).Index(7);
-                        foo.Map(t => t.StartTime).ConvertUsing(t =>
-                            t.EndTime?.Year == 1
+                        foo.Map(t => t.StartTime).Convert(t =>
+                            t.Value.EndTime?.Year == 1
                                 ? ""
-                                : t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
-                        foo.Map(t => t.EndTime).ConvertUsing(t =>
-                            t.EndTime?.Year == 1
+                                : t.Value.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
+                        foo.Map(t => t.EndTime).Convert(t =>
+                            t.Value.EndTime?.Year == 1
                                 ? ""
-                                : t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(9);
+                                : t.Value.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(9);
                         foo.Map(t => t.Duration).Index(10);
-                        foo.Map(t => t.LastModifiedTime).ConvertUsing(t =>
-                            t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(11);
-                        foo.Map(t => t.LastModifiedTimeOnClient).ConvertUsing(t =>
-                                t.LastModifiedTimeOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                        foo.Map(t => t.LastModifiedTime).Convert(t =>
+                            t.Value.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(11);
+                        foo.Map(t => t.LastModifiedTimeOnClient).Convert(t =>
+                                t.Value.LastModifiedTimeOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
                             .Index(12);
-                        foo.Map(t => t.CreatedTime).ConvertUsing(t =>
-                            t.CreatedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(13);
+                        foo.Map(t => t.CreatedTime).Convert(t =>
+                            t.Value.CreatedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(13);
 
-                        foo.Map(t => t.ExpirationTime).ConvertUsing(t =>
-                            t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(14);
-                        foo.Map(t => t.OperationExpirationTime).ConvertUsing(t =>
-                                t.OperationExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                        foo.Map(t => t.ExpirationTime).Convert(t =>
+                            t.Value.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(14);
+                        foo.Map(t => t.OperationExpirationTime).Convert(t =>
+                                t.Value.OperationExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
                             .Index(15);
 
                         foo.Map(t => t.OperationOrder).Index(16);
@@ -525,7 +525,7 @@ namespace WxTCmd
                         foo.Map(t => t.TimeZone).Index(22);
 
 
-                        csv.Configuration.RegisterClassMap(foo);
+                        csv.Context.RegisterClassMap(foo);
 
                         csv.WriteHeader<ActivityOperationEntry>();
                         csv.NextRecord();
@@ -548,19 +548,19 @@ namespace WxTCmd
                         {
                             DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
                         };
-                        csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityPackageIdEntry>(o);
+                        csv.Context.TypeConverterOptionsCache.AddOptions<ActivityPackageIdEntry>(o);
 
-                        var foo = csv.Configuration.AutoMap<ActivityPackageIdEntry>();
+                        var foo = csv.Context.AutoMap<ActivityPackageIdEntry>();
 
                         foo.Map(t => t.Id).Index(0);
                         foo.Map(t => t.Platform).Index(1);
                         foo.Map(t => t.Name).Index(2);
                         foo.Map(t => t.AdditionalInformation).Index(3);
                         foo.Map(t => t.Expires)
-                            .ConvertUsing(t => t.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                            .Convert(t => t.Value.Expires.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
                             .Index(4);
 
-                        csv.Configuration.RegisterClassMap(foo);
+                        csv.Context.RegisterClassMap(foo);
 
                         csv.WriteHeader<ActivityPackageIdEntry>();
                         csv.NextRecord();
@@ -583,9 +583,9 @@ namespace WxTCmd
                         {
                             DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
                         };
-                        csv.Configuration.TypeConverterOptionsCache.AddOptions<ActivityEntry>(o);
+                        csv.Context.TypeConverterOptionsCache.AddOptions<ActivityEntry>(o);
 
-                        var foo = csv.Configuration.AutoMap<ActivityEntry>();
+                        var foo = csv.Context.AutoMap<ActivityEntry>();
 
                         foo.Map(t => t.Id).Index(0);
                         foo.Map(t => t.ActivityTypeOrg).Index(1);
@@ -596,24 +596,24 @@ namespace WxTCmd
                         foo.Map(t => t.Payload).Index(6);
                         foo.Map(t => t.ClipboardPayload).Index(7);
                         foo.Map(t => t.StartTime)
-                            .ConvertUsing(t => t.StartTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
+                            .Convert(t => t.Value.StartTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat))
                             .Index(8);
-                        foo.Map(t => t.EndTime).ConvertUsing(t =>
-                            t.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(9);
+                        foo.Map(t => t.EndTime).Convert(t =>
+                            t.Value.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(9);
                         foo.Map(t => t.Duration).Index(10);
-                        foo.Map(t => t.LastModifiedTime).ConvertUsing(t =>
-                            t.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(11);
-                        foo.Map(t => t.LastModifiedOnClient).ConvertUsing(t =>
-                            t.LastModifiedOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(12);
-                        foo.Map(t => t.OriginalLastModifiedOnClient).ConvertUsing(t =>
-                                t.OriginalLastModifiedOnClient?.ToString(_fluentCommandLineParser.Object
+                        foo.Map(t => t.LastModifiedTime).Convert(t =>
+                            t.Value.LastModifiedTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(11);
+                        foo.Map(t => t.LastModifiedOnClient).Convert(t =>
+                            t.Value.LastModifiedOnClient.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(12);
+                        foo.Map(t => t.OriginalLastModifiedOnClient).Convert(t =>
+                                t.Value.OriginalLastModifiedOnClient?.ToString(_fluentCommandLineParser.Object
                                     .DateTimeFormat) +
                                 "")
                             .Index(13);
-                        foo.Map(t => t.ExpirationTime).ConvertUsing(t =>
-                            t.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(14);
-                        foo.Map(t => t.CreatedInCloud).ConvertUsing(t =>
-                            t.CreatedInCloud?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(15);
+                        foo.Map(t => t.ExpirationTime).Convert(t =>
+                            t.Value.ExpirationTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(14);
+                        foo.Map(t => t.CreatedInCloud).Convert(t =>
+                            t.Value.CreatedInCloud?.ToString(_fluentCommandLineParser.Object.DateTimeFormat) + "").Index(15);
 
                         foo.Map(t => t.IsLocalOnly).Index(16);
                         foo.Map(t => t.ETag).Index(17);
@@ -623,7 +623,7 @@ namespace WxTCmd
                         foo.Map(t => t.DevicePlatform).Index(20);
                         foo.Map(t => t.TimeZone).Index(21);
 
-                        csv.Configuration.RegisterClassMap(foo);
+                        csv.Context.RegisterClassMap(foo);
 
                         csv.WriteHeader<ActivityEntry>();
                         csv.NextRecord();
