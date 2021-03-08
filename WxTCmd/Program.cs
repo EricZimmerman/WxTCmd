@@ -8,6 +8,7 @@ using System.Linq;
 using System.Reflection;
 using System.Security.Principal;
 using System.Text;
+using System.Text.RegularExpressions;
 using CsvHelper;
 using CsvHelper.TypeConversion;
 using Fclp;
@@ -130,6 +131,22 @@ namespace WxTCmd
                 _logger.Warn($"File '{_fluentCommandLineParser.Object.File}' not found. Exiting");
                 return;
             }
+
+            var _userProfile = string.Empty;
+
+            
+            try {
+                _userProfile = Regex.Match(_fluentCommandLineParser.Object.File, @"\\Users\\(.+?)\\", RegexOptions.IgnoreCase).Groups[1].Value;
+
+                if (_userProfile.Length > 0)
+                {
+                    _userProfile = $"_{_userProfile}";
+                }
+
+            } catch (ArgumentException ) {
+                // Syntax error in the regular expression
+            }
+            
 
             _logger.Info(header);
             _logger.Info("");
@@ -466,7 +483,7 @@ namespace WxTCmd
 
                 if (aoes.Count > 0)
                 {
-                    var aoesFile = $"{ts1}_ActivityOperations.csv";
+                    var aoesFile = $"{ts1}{_userProfile}_ActivityOperations.csv";
                     var aoesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, aoesFile);
 
                     using (var sw = new StreamWriter(aoesOut, false, Encoding.UTF8))
@@ -537,7 +554,7 @@ namespace WxTCmd
 
                 if (apes.Count > 0)
                 {
-                    var apesFile = $"{ts1}_Activity_PackageIDs.csv";
+                    var apesFile = $"{ts1}{_userProfile}_Activity_PackageIDs.csv";
                     var apesOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, apesFile);
 
                     using (var sw = new StreamWriter(apesOut, false, Encoding.UTF8))
@@ -572,7 +589,7 @@ namespace WxTCmd
 
                 if (activitys.Count > 0)
                 {
-                    var actsFile = $"{ts1}_Activity.csv";
+                    var actsFile = $"{ts1}{_userProfile}_Activity.csv";
                     var actsOut = Path.Combine(_fluentCommandLineParser.Object.CsvDirectory, actsFile);
 
                     using (var sw = new StreamWriter(actsOut, false, Encoding.UTF8))
