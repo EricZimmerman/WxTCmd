@@ -508,9 +508,9 @@ namespace WxTCmd
                         foo.Map(t => t.Payload).Index(6);
                         foo.Map(t => t.ClipboardPayload).Index(7);
                         foo.Map(t => t.StartTime).Convert(t =>
-                            t.Value.EndTime?.Year == 1
+                            t.Value.StartTime.Year == 1
                                 ? ""
-                                : t.Value.EndTime?.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
+                                : t.Value.StartTime.ToString(_fluentCommandLineParser.Object.DateTimeFormat)).Index(8);
                         foo.Map(t => t.EndTime).Convert(t =>
                             t.Value.EndTime?.Year == 1
                                 ? ""
