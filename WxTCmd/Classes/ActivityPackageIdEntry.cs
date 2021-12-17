@@ -1,48 +1,47 @@
 ﻿using System;
 
-namespace WxTCmd.Classes
+namespace WxTCmd.Classes;
+
+public class ActivityPackageIdEntry
 {
-    public class ActivityPackageIdEntry
+    public ActivityPackageIdEntry(string id, string platform, string name, string additionalInformation,
+        DateTimeOffset expires)
     {
-        public ActivityPackageIdEntry(string id, string platform, string name, string additionalInformation,
-            DateTimeOffset expires)
+        Id = id;
+        switch (platform)
         {
-            Id = id;
-            switch (platform)
-            {
-                case "windows_win32":
-                    Platform = "Win32";
-                    break;
-                case "x_exe_path":
-                    Platform = "ExecutablePath";
-                    break;
-                case "packageId":
-                    Platform = "Package";
-                    break;
-                default:
-                    Platform = platform;
-                    break;
-            }
-
-            Name = name;
-            AdditionalInformation = additionalInformation;
-            Expires = expires;
+            case "windows_win32":
+                Platform = "Win32";
+                break;
+            case "x_exe_path":
+                Platform = "ExecutablePath";
+                break;
+            case "packageId":
+                Platform = "Package";
+                break;
+            default:
+                Platform = platform;
+                break;
         }
 
-        public string Id { get; set; }
-        public string Platform { get; set; }
-        public string Name { get; set; }
-        public string AdditionalInformation { get; set; }
+        Name = name;
+        AdditionalInformation = additionalInformation;
+        Expires = expires;
+    }
 
-        public DateTimeOffset Expires { get; set; }
+    public string Id { get; set; }
+    public string Platform { get; set; }
+    public string Name { get; set; }
+    public string AdditionalInformation { get; set; }
 
-        public override string ToString()
-        {
-            var addlInfo = string.Empty;
+    public DateTimeOffset Expires { get; set; }
 
-            if (AdditionalInformation.Length > 0) addlInfo = $" Additional info: {AdditionalInformation}";
+    public override string ToString()
+    {
+        var addlInfo = string.Empty;
 
-            return $"Platform: {Platform} Name: {Name} Expires: {Expires}{addlInfo}";
-        }
+        if (AdditionalInformation.Length > 0) addlInfo = $" Additional info: {AdditionalInformation}";
+
+        return $"Platform: {Platform} Name: {Name} Expires: {Expires}{addlInfo}";
     }
 }

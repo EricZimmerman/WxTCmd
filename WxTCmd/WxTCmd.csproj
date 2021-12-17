@@ -1,15 +1,15 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net462</TargetFramework>
+    <TargetFrameworks>net462;net6.0</TargetFrameworks>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>WxTCmd</AssemblyTitle>
     <Company>Eric Zimmerman 501-313-3778</Company>
     <Product>WxTCmd</Product>
     <Description>Windows 10 Timeline parser</Description>
-    <Copyright>Copyright ©  2021</Copyright>
-    <AssemblyVersion>0.6.0.0</AssemblyVersion>
-    <FileVersion>0.6.0.0</FileVersion>
+    <Copyright>Copyright ©  2022</Copyright>
+    <Version>0.6.6.0</Version>
+    <LangVersion>10</LangVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -18,17 +18,16 @@
     <ApplicationIcon>Calendar Money64.ico</ApplicationIcon>
   </PropertyGroup>
   <ItemGroup>
+    
+    <PackageReference Include="ServiceStack.OrmLite.Sqlite.Core" Version="5.13.2" />
+    
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta2.21616.4" />
+    <PackageReference Include="System.CommandLine.NamingConventionBinder" Version="2.0.0-beta2.21616.4" />
     <PackageReference Include="System.IO.Compression" Version="4.*" />
     <PackageReference Include="System.Data.DataSetExtensions" Version="4.*" />
-    <PackageReference Include="Microsoft.CSharp" Version="4.*" />
-    <PackageReference Include="System.Net.Http" Version="4.*" />
+    <PackageReference Include="Microsoft.CSharp" Version="4.7.0" />
   </ItemGroup>
-  <ItemGroup>
-    <Reference Include="System.ComponentModel.DataAnnotations" />
-    <Reference Include="System.Configuration" />
-    <Reference Include="System.ServiceModel" />
-    <Reference Include="System.Transactions" />
-  </ItemGroup>
+
   <ItemGroup>
     <Compile Update="Properties\Resources.Designer.cs">
       <AutoGen>True</AutoGen>
@@ -46,20 +45,18 @@
     <Content Include="Calendar Money64.ico" />
   </ItemGroup>
   <ItemGroup>
-    <PackageReference Include="Costura.Fody" Version="5.2.0">
+    <PackageReference Include="Costura.Fody" Version="5.7.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="CsvHelper" Version="27.1.0" />
-    <PackageReference Include="FluentCommandLineParser" Version="1.4.3" />
-    <PackageReference Include="Fody" Version="6.5.1">
+    <PackageReference Include="CsvHelper" Version="27.2.1" />
+    <PackageReference Include="Fody" Version="6.6.0">
       <PrivateAssets>all</PrivateAssets>
     </PackageReference>
-    <PackageReference Include="GuidMapping" Version="1.0.0.4" />
-    <PackageReference Include="NLog" Version="4.7.10" />
-    <PackageReference Include="ServiceStack.OrmLite.Sqlite.Windows" Version="5.11.0" />
+    <PackageReference Include="GuidMapping" Version="1.0.0.5" />
+    <PackageReference Include="NLog" Version="4.7.13" />
     <PackageReference Include="System.Buffers" Version="4.5.1" />
-    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.114" />
+    <PackageReference Include="System.Data.SQLite.Core" Version="1.0.115.5" />
     <PackageReference Include="System.Numerics.Vectors" Version="4.5.0" />
-    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="5.0.0" />
+    <PackageReference Include="System.Runtime.CompilerServices.Unsafe" Version="6.0.0" />
   </ItemGroup>
 </Project>
