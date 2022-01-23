@@ -16,9 +16,9 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CsvHelper;
 using CsvHelper.TypeConversion;
-using NLog;
-using NLog.Config;
-using NLog.Targets;
+using Serilog;
+using Serilog.Core;
+using Serilog.Events;
 using ServiceStack;
 using ServiceStack.OrmLite;
 using WxTCmd.Classes;
@@ -29,8 +29,8 @@ namespace WxTCmd;
 
 internal class Program
 {
-    private static Logger _logger;
 
+    private static string _activeDateTimeFormat;
     private static readonly string BaseDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
     private static RootCommand _rootCommand;
@@ -65,11 +65,8 @@ internal class Program
     private static async Task Main(string[] args)
     {
         //https://salt4n6.wordpress.com/2018/05/05/windows-10-timeline-forensic-artefacts/amp/?__twitter_impression=true
-
-        SetupNLog();
-
-        _logger = LogManager.GetLogger("Main");
-
+        //ActivitiesCache.db
+        
         _rootCommand = new RootCommand
         {
             new Option<string>(
@@ -89,6 +86,11 @@ internal class Program
                 "--debug",
                 () => false,
                 "Show debug information during processing"),
+            
+            new Option<bool>(
+                "--trace",
+                () => false,
+                "Show trace information during processing"),
         };
         
         _rootCommand.Description = Header + "\r\n\r\n" + Footer;
@@ -97,12 +99,69 @@ internal class Program
 
         await _rootCommand.InvokeAsync(args);
      
-        
+        Log.CloseAndFlush();
     }
 
-    private static void DoWork(string f, string csv, string dt, bool debug)
+    class DateTimeOffsetFormatter : IFormatProvider, ICustomFormatter
     {
-       
+        private readonly IFormatProvider _innerFormatProvider;
+
+        public DateTimeOffsetFormatter(IFormatProvider innerFormatProvider)
+        {
+            _innerFormatProvider = innerFormatProvider;
+        }
+
+        public object GetFormat(Type formatType)
+        {
+            return formatType == typeof(ICustomFormatter) ? this : _innerFormatProvider.GetFormat(formatType);
+        }
+
+        public string Format(string format, object arg, IFormatProvider formatProvider)
+        {
+            if (arg is DateTimeOffset)
+            {
+                var size = (DateTimeOffset)arg;
+                return size.ToString(_activeDateTimeFormat);
+            }
+
+            var formattable = arg as IFormattable;
+            if (formattable != null)
+            {
+                return formattable.ToString(format, _innerFormatProvider);
+            }
+
+            return arg.ToString();
+        }
+    }
+    
+    private static void DoWork(string f, string csv, string dt, bool debug,bool trace)
+    {
+        var levelSwitch = new LoggingLevelSwitch();
+
+        _activeDateTimeFormat = dt;
+        
+        var formatter  =
+            new DateTimeOffsetFormatter(CultureInfo.CurrentCulture);
+
+        var template = "{Message:lj}{NewLine}{Exception}";
+
+        if (debug)
+        {
+            levelSwitch.MinimumLevel = LogEventLevel.Debug;
+            template = "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}";
+        }
+
+        if (trace)
+        {
+            levelSwitch.MinimumLevel = LogEventLevel.Verbose;
+            template = "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}";
+        }
+        
+        var conf = new LoggerConfiguration()
+            .WriteTo.Console(outputTemplate: template,formatProvider: formatter)
+            .MinimumLevel.ControlledBy(levelSwitch);
+      
+        Log.Logger = conf.CreateLogger();
 
         if (f.IsNullOrEmpty())
         {
@@ -111,7 +170,8 @@ internal class Program
 
             helpBld.Write(hc);
 
-            _logger.Warn("-f is required. Exiting");
+            Log.Warning("-f is required. Exiting");
+            Console.WriteLine();
             return;
         }
 
@@ -122,7 +182,8 @@ internal class Program
 
             helpBld.Write(hc);
 
-            _logger.Warn("--csv is required. Exiting");
+            Log.Warning("--csv is required. Exiting");
+            Console.WriteLine();
             return;
         }
 
@@ -133,7 +194,8 @@ internal class Program
 
             helpBld.Write(hc);
 
-            _logger.Warn($"File '{f}' not found. Exiting");
+            Log.Warning("File '{F}' not found. Exiting",f);
+            Console.WriteLine();
             return;
         }
 
@@ -152,20 +214,17 @@ internal class Program
             // Syntax error in the regular expression
         }
 
-        _logger.Info(Header);
-        _logger.Info("");
-        _logger.Info($"Command line: {string.Join(" ", Environment.GetCommandLineArgs().Skip(1))}\r\n");
+        Log.Information("{Header}",Header);
+        Console.WriteLine();
+        Log.Information("Command line: {Args}",string.Join(" ", Environment.GetCommandLineArgs().Skip(1)));
+        Console.WriteLine();
 
         if (IsAdministrator() == false)
         {
-            _logger.Fatal("Warning: Administrator privileges not found!\r\n");
+            Log.Warning("Warning: Administrator privileges not found!");
+            Console.WriteLine();
         }
-
-        if (debug)
-        {
-            LogManager.Configuration.LoggingRules.First().EnableLoggingForLevel(LogLevel.Debug);
-            LogManager.ReconfigExistingLoggers();
-        }
+     
 
         DumpSqliteDll();
 
@@ -189,7 +248,7 @@ internal class Program
                 {
                     var activityOperations = db.Select<ActivityOperation>();
 
-                    _logger.Info($"ActivityOperation entries found: {activityOperations.Count:N0}");
+                    Log.Information("{Table} entries found: {Count:N0}","ActivityOperation",activityOperations.Count);
 
                     foreach (var op in activityOperations)
                     {
@@ -293,11 +352,11 @@ internal class Program
                 {
                     if (e.Message.Contains("no such table"))
                     {
-                        _logger.Error("ActivityOperation table does not exist!");
+                        Log.Error("{Table} table does not exist!","ActivityOperation");
                     }
                     else
                     {
-                        _logger.Error($"Error processing ActivityOperation table: {e.Message}");
+                        Log.Error(e,"Error processing {Table} table: {Message}","ActivityOperation",e.Message);
                     }
                 }
 
@@ -305,7 +364,7 @@ internal class Program
                 {
                     var activityPackageIds = db.Select<ActivityPackageId>();
 
-                    _logger.Info($"Activity_PackageId entries found: {activityPackageIds.Count:N0}");
+                    Log.Information("{Table} entries found: {Count:N0}","Activity_PackageId",activityPackageIds.Count);
 
                     foreach (var packageId in activityPackageIds)
                     {
@@ -335,11 +394,11 @@ internal class Program
                 {
                     if (e.Message.Contains("no such table"))
                     {
-                        _logger.Error("ActivityPackageId table does not exist!");
+                        Log.Error("{Table} table does not exist!","ActivityPackageId");
                     }
                     else
                     {
-                        _logger.Error($"Error processing ActivityPackageId table: {e.Message}");
+                        Log.Error(e,"Error processing {Table} table: {Message}","ActivityPackageId",e.Message);
                     }
                 }
 
@@ -347,7 +406,7 @@ internal class Program
                 {
                     var activities = db.Select<Classes.Activity>();
 
-                    _logger.Info($"Activity entries found: {activities.Count:N0}");
+                    Log.Information("{Table} entries found: {Count:N0}","Activity",activities.Count);
 
                     foreach (var act in activities)
                     {
@@ -454,11 +513,11 @@ internal class Program
                 {
                     if (e.Message.Contains("no such table"))
                     {
-                        _logger.Error("Activity table does not exist!");
+                        Log.Error("{Activity} table does not exist!","Activity");
                     }
                     else
                     {
-                        _logger.Error($"Error processing Activity table: {e.Message}");
+                        Log.Error(e,"Error processing {Activity} table: {Message}","Activity",e.Message);
                     }
                 }
             }
@@ -473,8 +532,7 @@ internal class Program
                 }
                 catch (Exception ex)
                 {
-                    _logger.Error(
-                        $"There was an error creating directory '{csv}'. Error: {ex.Message} Exiting");
+                    Log.Error(ex, "There was an error creating directory '{Csv}'. Error: {Message} Exiting",csv);
                     return;
                 }
             }
@@ -646,22 +704,25 @@ internal class Program
         {
             if (e.Message.Contains("file is not a database"))
             {
-                _logger.Error(
-                    $"Error processing database: '{f}' is not a sqlite database");
+                Log.Error(
+                    "Error processing database: '{F}' is not a sqlite database",f);
             }
             else
             {
-                _logger.Error($"Error processing database: {e.Message}");
+                Log.Error(e,"Error processing database: {Message}",e.Message);
             }
         }
         
 
         sw1.Stop();
 
-        _logger.Info($"\r\nResults saved to: {csv}");
+        Console.WriteLine();
+        Log.Information("Results saved to: {Csv}",csv);
 
-        _logger.Info(
-            $"\r\nProcessing complete in {sw1.Elapsed.TotalSeconds:N4} seconds\r\n");
+        Console.WriteLine();
+        Log.Information(
+            "Processing complete in {TotalSeconds:N4} seconds",sw1.Elapsed.TotalSeconds);
+        Console.WriteLine();
 
         if (File.Exists("SQLite.Interop.dll"))
         {
@@ -671,7 +732,8 @@ internal class Program
             }
             catch (Exception)
             {
-                _logger.Warn("Unable to delete 'SQLite.Interop.dll'. Delete manually if needed.\r\n");
+                Log.Warning("Unable to delete {Sql}. Delete manually if needed","SQLite.Interop.dll");
+                Console.WriteLine();
             }
         }
     }
@@ -690,29 +752,7 @@ internal class Program
         }
     }
 
-    private static void SetupNLog()
-    {
-        if (File.Exists(Path.Combine(BaseDirectory, "Nlog.config")))
-        {
-            return;
-        }
-
-        var config = new LoggingConfiguration();
-        var loglevel = LogLevel.Info;
-
-        const string layout = @"${message}";
-
-        var consoleTarget = new ColoredConsoleTarget();
-
-        config.AddTarget("console", consoleTarget);
-
-        consoleTarget.Layout = layout;
-
-        var rule1 = new LoggingRule("*", loglevel, consoleTarget);
-        config.LoggingRules.Add(rule1);
-
-        LogManager.Configuration = config;
-    }
+  
 }
 
 public class EpochConverter : DateTimeConverter

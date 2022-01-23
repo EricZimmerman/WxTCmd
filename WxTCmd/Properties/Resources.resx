@@ -122,9 +122,9 @@
   </data>
   <assembly alias="System.Windows.Forms" name="System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089" />
   <data name="x64SQLite_Interop" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\bin\x64\SQLite.Interop.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>..\bin\Files\x64\SQLite.Interop.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
   <data name="x86SQLite_Interop" type="System.Resources.ResXFileRef, System.Windows.Forms">
-    <value>..\bin\x86\SQLite.Interop.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+    <value>..\bin\Files\x86\SQLite.Interop.dll;System.Byte[], mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </data>
 </root>
