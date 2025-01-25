@@ -724,6 +724,21 @@ internal class Program
             "Processing complete in {TotalSeconds:N4} seconds",sw1.Elapsed.TotalSeconds);
         Console.WriteLine();
 
+#if NET6_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)){ 
+        if (File.Exists("libSQLite.Interop.so"))
+        {
+            try
+            {
+                File.Delete("libSQLite.Interop.so");
+            }
+            catch (Exception)
+            {
+                Log.Warning("Unable to delete {Sql}. Delete manually if needed","libSQLite.Interop.so");
+                Console.WriteLine();
+            }
+        }
+        } else {
         if (File.Exists("SQLite.Interop.dll"))
         {
             try
@@ -736,10 +751,43 @@ internal class Program
                 Console.WriteLine();
             }
         }
+        }
+#else
+        if (File.Exists("SQLite.Interop.dll"))
+        {
+            try
+            {
+                File.Delete("SQLite.Interop.dll");
+            }
+            catch (Exception)
+            {
+                Log.Warning("Unable to delete {Sql}. Delete manually if needed","SQLite.Interop.dll");
+                Console.WriteLine();
+            }
+        }
+#endif        
     }
 
     private static void DumpSqliteDll()
     {
+#if NET6_0_OR_GREATER
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)){
+        var sqllitefile = "libSQLite.Interop.so"; 
+
+        if (Environment.Is64BitProcess)
+        {
+            File.WriteAllBytes(sqllitefile, Resources.x64SQLite_Interop_linux);
+        }
+        else
+        {
+            //32 Bit Not Tested on Linux
+            //File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop_linux);
+            Log.Warning("32 Bit Linux Not Supported! Exiting");
+            Console.WriteLine();
+            Environment.Exit(-1);
+        }
+        } else {
+
         var sqllitefile = "SQLite.Interop.dll";
 
         if (Environment.Is64BitProcess)
@@ -750,6 +798,19 @@ internal class Program
         {
             File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop);
         }
+        }
+#else
+        var sqllitefile = "SQLite.Interop.dll";
+
+        if (Environment.Is64BitProcess)
+        {
+            File.WriteAllBytes(sqllitefile, Resources.x64SQLite_Interop);
+        }
+        else
+        {
+            File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop);
+        }
+#endif        
     }
 
   

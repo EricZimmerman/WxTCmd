@@ -30,6 +30,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="Files\x64\SQLite.Interop.dll" />
+    <None Include="Files\x64\libSQLite.Interop.so" />
     <None Include="Files\\x86\SQLite.Interop.dll" />
     
     <Content Include="Calendar Money64.ico" />
