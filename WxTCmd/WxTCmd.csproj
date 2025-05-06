@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFrameworks>net462;net6.0;net9.0</TargetFrameworks>
+    <TargetFrameworks>net6.0;net9.0</TargetFrameworks>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
     <AssemblyTitle>WxTCmd</AssemblyTitle>
     <Company>Eric Zimmerman</Company>
