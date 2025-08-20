@@ -203,7 +203,7 @@ internal class Program
 
             
         try {
-            userProfile = Regex.Match(f, @"\\Users\\(.+?)\\", RegexOptions.IgnoreCase).Groups[1].Value;
+            userProfile = Regex.Match(f, @"(?:\\|/)Users(?:\\|/)([^\\\/]+)(?!.*(?:\\|/)Users(?:\\|/))", RegexOptions.IgnoreCase).Groups[1].Value;
 
             if (userProfile.Length > 0)
             {
