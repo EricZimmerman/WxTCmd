@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Help;
-using System.CommandLine.NamingConventionBinder;
+using System.CommandLine.Invocation;
 using System.Data;
 using System.Diagnostics;
 using System.Globalization;
@@ -36,7 +36,7 @@ internal class Program
     private static RootCommand _rootCommand;
 
     private static readonly string Header =
-        $"WxTCmd version {Assembly.GetExecutingAssembly().GetName().Version}" +
+        $"WxTCmd version {Assembly.GetExecutingAssembly().GetName().Version.ToString(3)}" +
         "\r\n\r\nAuthor: Eric Zimmerman (saericzimmerman@gmail.com)" +
         "\r\nhttps://github.com/EricZimmerman/WxTCmd";
 
@@ -67,37 +67,49 @@ internal class Program
         //https://salt4n6.wordpress.com/2018/05/05/windows-10-timeline-forensic-artefacts/amp/?__twitter_impression=true
         //ActivitiesCache.db
         
+        var fOpt = new Option<string>("-f")
+        {
+            Description = "File to process"
+        };
+        
+        var csvOpt = new Option<string>(
+            "--csv")
+        {
+            Description = "Directory to save CSV formatted results to. Be sure to include the full path in double quotes"
+        };
+        
+        var dtOpt = new Option<string>(
+            "--dt"){
+            Description =        "The custom date/time format to use when displaying time stamps. See https://goo.gl/CNVq0k for options. Default is: yyyy-MM-dd HH:mm:ss",
+            DefaultValueFactory = _ => "yyyy-MM-dd HH:mm:ss"
+        };
+        
+        var debugOpt = new Option<bool>("--debug")
+        {
+            Description = "Show debug information during processing",
+            DefaultValueFactory = _ => false
+        };
+        var traceOpt = new Option<bool>("--trace")
+        {
+            Description = "Show trace information during processing",
+            DefaultValueFactory = _ => false
+        };
+        
         _rootCommand = new RootCommand
         {
-            new Option<string>(
-                "-f",
-                "File to process. Required"),
-
-            new Option<string>(
-                "--csv",
-                "Directory to save CSV formatted results to. Be sure to include the full path in double quotes"),
-
-            new Option<string>(
-                "--dt",
-                () => "yyyy-MM-dd HH:mm:ss",
-                "The custom date/time format to use when displaying timestamps. See https://goo.gl/CNVq0k for options"),
-            
-            new Option<bool>(
-                "--debug",
-                () => false,
-                "Show debug information during processing"),
-            
-            new Option<bool>(
-                "--trace",
-                () => false,
-                "Show trace information during processing"),
+            fOpt,
+            csvOpt,
+            dtOpt,
+            debugOpt,
+            traceOpt
         };
         
         _rootCommand.Description = Header + "\r\n\r\n" + Footer;
 
-        _rootCommand.Handler = CommandHandler.Create(DoWork);
-
-        await _rootCommand.InvokeAsync(args);
+        _rootCommand.SetAction(result => DoWork(result.GetValue(fOpt), result.GetValue(csvOpt), result.GetValue(dtOpt),
+            result.GetValue(debugOpt), result.GetValue(traceOpt)));
+            
+        var foo = _rootCommand.Parse(args).InvokeAsync();
      
         Log.CloseAndFlush();
     }
@@ -165,10 +177,8 @@ internal class Program
 
         if (f.IsNullOrEmpty())
         {
-            var helpBld = new HelpBuilder(LocalizationResources.Instance, Console.WindowWidth);
-            var hc = new HelpContext(helpBld,_rootCommand,Console.Out);
-
-            helpBld.Write(hc);
+            var aaa = new CustomHelpAction(new HelpAction());
+            aaa.Invoke(_rootCommand.Parse("--dl is required. Exiting"));
 
             Log.Warning("-f is required. Exiting");
             Console.WriteLine();
@@ -177,24 +187,18 @@ internal class Program
 
         if (csv.IsNullOrEmpty())
         {
-            var helpBld = new HelpBuilder(LocalizationResources.Instance, Console.WindowWidth);
-            var hc = new HelpContext(helpBld,_rootCommand,Console.Out);
-
-            helpBld.Write(hc);
-
-            Log.Warning("--csv is required. Exiting");
+            var aaa = new CustomHelpAction(new HelpAction());
+            aaa.Invoke(_rootCommand.Parse("--csv is required. Exiting"));
+            
             Console.WriteLine();
             return;
         }
 
         if (!File.Exists(f))
         {
-            var helpBld = new HelpBuilder(LocalizationResources.Instance, Console.WindowWidth);
-            var hc = new HelpContext(helpBld,_rootCommand,Console.Out);
-
-            helpBld.Write(hc);
-
-            Log.Warning("File '{F}' not found. Exiting",f);
+            var aaa = new CustomHelpAction(new HelpAction());
+            aaa.Invoke(_rootCommand.Parse($"File '{f}' not found. Exiting"));
+            
             Console.WriteLine();
             return;
         }
@@ -813,6 +817,24 @@ internal class Program
 #endif        
     }
 
+    private class CustomHelpAction : SynchronousCommandLineAction
+    {
+        private readonly HelpAction _defaultHelp;
+
+        public CustomHelpAction(HelpAction action)
+        {
+            _defaultHelp = action;
+        }
+
+        public override int Invoke(ParseResult parseResult)
+        {
+            var result = _defaultHelp.Invoke(parseResult);
+
+            Log.Warning("{Msg}", string.Join(" ",parseResult.Tokens));
+
+            return result;
+        }
+    }
   
 }
 
@@ -851,6 +873,8 @@ public class EpochConverter : DateTimeConverter
 
         return DateTimeOffset.FromUnixTimeSeconds(val).ToUniversalTime();
     }
+    
+  
 }
 
 
