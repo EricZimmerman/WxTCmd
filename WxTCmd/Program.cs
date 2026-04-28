@@ -178,9 +178,8 @@ internal class Program
         if (f.IsNullOrEmpty())
         {
             var aaa = new CustomHelpAction(new HelpAction());
-            aaa.Invoke(_rootCommand.Parse("--dl is required. Exiting"));
+            aaa.Invoke(_rootCommand.Parse("-f is required. Exiting"));
 
-            Log.Warning("-f is required. Exiting");
             Console.WriteLine();
             return;
         }
