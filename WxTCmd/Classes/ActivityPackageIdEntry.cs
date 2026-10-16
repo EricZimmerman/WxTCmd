@@ -1,28 +1,21 @@
-﻿using System;
+using System;
 
 namespace WxTCmd.Classes;
 
+/// <summary>A row of the Activity_PackageId table</summary>
 public class ActivityPackageIdEntry
 {
     public ActivityPackageIdEntry(string id, string platform, string name, string additionalInformation,
-        DateTimeOffset expires)
+        DateTimeOffset? expires)
     {
         Id = id;
-        switch (platform)
+        Platform = platform switch
         {
-            case "windows_win32":
-                Platform = "Win32";
-                break;
-            case "x_exe_path":
-                Platform = "ExecutablePath";
-                break;
-            case "packageId":
-                Platform = "Package";
-                break;
-            default:
-                Platform = platform;
-                break;
-        }
+            "windows_win32" => "Win32",
+            "x_exe_path" => "ExecutablePath",
+            "packageId" => "Package",
+            _ => platform
+        };
 
         Name = name;
         AdditionalInformation = additionalInformation;
@@ -34,13 +27,16 @@ public class ActivityPackageIdEntry
     public string Name { get; set; }
     public string AdditionalInformation { get; set; }
 
-    public DateTimeOffset Expires { get; set; }
+    public DateTimeOffset? Expires { get; set; }
 
     public override string ToString()
     {
         var addlInfo = string.Empty;
 
-        if (AdditionalInformation.Length > 0) addlInfo = $" Additional info: {AdditionalInformation}";
+        if (AdditionalInformation?.Length > 0)
+        {
+            addlInfo = $" Additional info: {AdditionalInformation}";
+        }
 
         return $"Platform: {Platform} Name: {Name} Expires: {Expires}{addlInfo}";
     }

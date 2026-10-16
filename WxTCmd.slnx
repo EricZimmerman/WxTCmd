@@ -1,0 +1,4 @@
+<Solution>
+  <Project Path="WxTCmd/WxTCmd.csproj" />
+  <Project Path="WxTCmd.Test/WxTCmd.Test.csproj" />
+</Solution>

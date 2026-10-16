@@ -1,51 +1,37 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>net9.0</TargetFramework>
-    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <TargetFramework>net10.0</TargetFramework>
+    <!-- a single file publish includes the native SQLite library (Microsoft.Data.Sqlite) -->
+    <IncludeNativeLibrariesForSelfExtract>true</IncludeNativeLibrariesForSelfExtract>
     <AssemblyTitle>WxTCmd</AssemblyTitle>
     <Company>Eric Zimmerman</Company>
     <Product>WxTCmd</Product>
-    <Description>Windows 10 Timeline parser</Description>
+    <Description>Windows 10/11 Timeline (ActivitiesCache.db) parser</Description>
     <Copyright>Eric Zimmerman</Copyright>
-    <Version>2026.5.0</Version>
+    <Version>2026.10.0</Version>
     <LangVersion>10</LangVersion>
+    <IsPackable>false</IsPackable>
   </PropertyGroup>
-  
+
   <PropertyGroup>
     <ApplicationIcon>Calendar Money64.ico</ApplicationIcon>
   </PropertyGroup>
+
   <ItemGroup>
-    <PackageReference Include="ServiceStack.OrmLite.Sqlite.Core" Version="8.10.0" />
-    <PackageReference Include="System.CommandLine" Version="2.0.7" />
+    <InternalsVisibleTo Include="WxTCmd.Test" />
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Update="Properties\Resources.Designer.cs">
-      <AutoGen>True</AutoGen>
-      <DesignTime>True</DesignTime>
-      <DependentUpon>Resources.resx</DependentUpon>
-    </Compile>
-  </ItemGroup>
-  <ItemGroup>
-    <None Include="Files\x64\SQLite.Interop.dll" />
-    <None Include="Files\x64\libSQLite.Interop.so" />
-    <None Include="Files\\x86\SQLite.Interop.dll" />
-    
     <Content Include="Calendar Money64.ico" />
   </ItemGroup>
+
   <ItemGroup>
-    <PackageReference Include="Costura.Fody" Version="6.1.0">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
     <PackageReference Include="CsvHelper" Version="33.1.0" />
-    <PackageReference Include="Fody" Version="6.9.3">
-      <PrivateAssets>all</PrivateAssets>
-    </PackageReference>
-    <PackageReference Include="GuidMapping" Version="2026.5.0" />
-    <PackageReference Include="Serilog" Version="4.3.1" />
+    <PackageReference Include="GuidMapping" Version="2026.10.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="10.0.13" />
+    <PackageReference Include="Serilog" Version="4.4.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.1.1" />
-        <PackageReference Include="System.Data.SQLite.Core" Version="1.0.119" />
-    
+    <PackageReference Include="System.CommandLine" Version="2.0.13" />
   </ItemGroup>
 </Project>

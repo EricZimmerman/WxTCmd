@@ -1,9 +1,8 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.CommandLine;
 using System.CommandLine.Help;
 using System.CommandLine.Invocation;
-using System.Data;
 using System.Diagnostics;
 using System.Globalization;
 using System.IO;
@@ -15,23 +14,17 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CsvHelper;
-using CsvHelper.TypeConversion;
+using CsvHelper.Configuration;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
-using ServiceStack;
-using ServiceStack.OrmLite;
 using WxTCmd.Classes;
-using WxTCmd.Properties;
-using DateTimeConverter = ServiceStack.OrmLite.Converters.DateTimeConverter;
 
 namespace WxTCmd;
 
 internal class Program
 {
-
     private static string _activeDateTimeFormat;
-    private static readonly string BaseDirectory = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
 
     private static RootCommand _rootCommand;
 
@@ -40,7 +33,7 @@ internal class Program
         "\r\n\r\nAuthor: Eric Zimmerman (saericzimmerman@gmail.com)" +
         "\r\nhttps://github.com/EricZimmerman/WxTCmd";
 
-    private static string Footer =
+    private static readonly string Footer =
         @"Examples: WxTCmd.exe -f ""C:\Users\eric\AppData\Local\ConnectedDevicesPlatform\L.eric\ActivitiesCache.db"" --csv c:\temp" +
         "\r\n\t " +
         "\r\n\t" +
@@ -49,41 +42,41 @@ internal class Program
         "\r\n\t" +
         "    Short options (single letter) are prefixed with a single dash. Long commands are prefixed with two dashes";
 
-
     private static bool IsAdministrator()
     {
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
         {
             return true;
         }
-        
+
         var identity = WindowsIdentity.GetCurrent();
         var principal = new WindowsPrincipal(identity);
         return principal.IsInRole(WindowsBuiltInRole.Administrator);
     }
 
-    private static async Task Main(string[] args)
+    private static async Task<int> Main(string[] args)
     {
         //https://salt4n6.wordpress.com/2018/05/05/windows-10-timeline-forensic-artefacts/amp/?__twitter_impression=true
         //ActivitiesCache.db
-        
+
         var fOpt = new Option<string>("-f")
         {
             Description = "File to process"
         };
-        
+
         var csvOpt = new Option<string>(
             "--csv")
         {
             Description = "Directory to save CSV formatted results to. Be sure to include the full path in double quotes"
         };
-        
+
         var dtOpt = new Option<string>(
-            "--dt"){
-            Description =        "The custom date/time format to use when displaying time stamps. See https://goo.gl/CNVq0k for options",
+            "--dt")
+        {
+            Description = "The custom date/time format to use when displaying time stamps. See https://goo.gl/CNVq0k for options",
             DefaultValueFactory = _ => "yyyy-MM-dd HH:mm:ss"
         };
-        
+
         var debugOpt = new Option<bool>("--debug")
         {
             Description = "Show debug information during processing",
@@ -94,7 +87,7 @@ internal class Program
             Description = "Show trace information during processing",
             DefaultValueFactory = _ => false
         };
-        
+
         _rootCommand = new RootCommand
         {
             fOpt,
@@ -103,18 +96,20 @@ internal class Program
             debugOpt,
             traceOpt
         };
-        
+
         _rootCommand.Description = Header + "\r\n\r\n" + Footer;
 
         _rootCommand.SetAction(result => DoWork(result.GetValue(fOpt), result.GetValue(csvOpt), result.GetValue(dtOpt),
             result.GetValue(debugOpt), result.GetValue(traceOpt)));
-            
-        var foo = _rootCommand.Parse(args).InvokeAsync();
-     
+
+        var exitCode = await _rootCommand.Parse(args).InvokeAsync();
+
         Log.CloseAndFlush();
+
+        return exitCode;
     }
 
-    class DateTimeOffsetFormatter : IFormatProvider, ICustomFormatter
+    private class DateTimeOffsetFormatter : IFormatProvider, ICustomFormatter
     {
         private readonly IFormatProvider _innerFormatProvider;
 
@@ -130,30 +125,36 @@ internal class Program
 
         public string Format(string format, object arg, IFormatProvider formatProvider)
         {
-            if (arg is DateTimeOffset)
+            if (arg is DateTimeOffset dto)
             {
-                var size = (DateTimeOffset)arg;
-                return size.ToString(_activeDateTimeFormat);
+                return dto.ToString(_activeDateTimeFormat);
             }
 
-            var formattable = arg as IFormattable;
-            if (formattable != null)
+            if (arg is IFormattable formattable)
             {
                 return formattable.ToString(format, _innerFormatProvider);
             }
 
-            return arg.ToString();
+            return arg?.ToString();
         }
     }
-    
-    private static void DoWork(string f, string csv, string dt, bool debug,bool trace)
+
+    private static int ShowHelp(string message)
+    {
+        var help = new CustomHelpAction(new HelpAction());
+        help.Invoke(_rootCommand.Parse(message));
+
+        Console.WriteLine();
+        return 1;
+    }
+
+    private static int DoWork(string f, string csv, string dt, bool debug, bool trace)
     {
         var levelSwitch = new LoggingLevelSwitch();
 
         _activeDateTimeFormat = dt;
-        
-        var formatter  =
-            new DateTimeOffsetFormatter(CultureInfo.CurrentCulture);
+
+        var formatter = new DateTimeOffsetFormatter(CultureInfo.CurrentCulture);
 
         var template = "{Message:lj}{NewLine}{Exception}";
 
@@ -168,58 +169,47 @@ internal class Program
             levelSwitch.MinimumLevel = LogEventLevel.Verbose;
             template = "[{Timestamp:HH:mm:ss.fff} {Level:u3}] {Message:lj}{NewLine}{Exception}";
         }
-        
+
         var conf = new LoggerConfiguration()
-            .WriteTo.Console(outputTemplate: template,formatProvider: formatter)
+            .WriteTo.Console(outputTemplate: template, formatProvider: formatter)
             .MinimumLevel.ControlledBy(levelSwitch);
-      
+
         Log.Logger = conf.CreateLogger();
 
-        if (f.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(f))
         {
-            var aaa = new CustomHelpAction(new HelpAction());
-            aaa.Invoke(_rootCommand.Parse("-f is required. Exiting"));
-
-            Console.WriteLine();
-            return;
+            return ShowHelp("-f is required. Exiting");
         }
 
-        if (csv.IsNullOrEmpty())
+        if (string.IsNullOrEmpty(csv))
         {
-            var aaa = new CustomHelpAction(new HelpAction());
-            aaa.Invoke(_rootCommand.Parse("--csv is required. Exiting"));
-            
-            Console.WriteLine();
-            return;
+            return ShowHelp("--csv is required. Exiting");
         }
 
         if (!File.Exists(f))
         {
-            var aaa = new CustomHelpAction(new HelpAction());
-            aaa.Invoke(_rootCommand.Parse($"File '{f}' not found. Exiting"));
-            
-            Console.WriteLine();
-            return;
+            return ShowHelp($"File '{f}' not found. Exiting");
         }
 
         var userProfile = string.Empty;
 
-            
-        try {
+        try
+        {
             userProfile = Regex.Match(f, @"(?:\\|/)Users(?:\\|/)([^\\\/]+)(?!.*(?:\\|/)Users(?:\\|/))", RegexOptions.IgnoreCase).Groups[1].Value;
 
             if (userProfile.Length > 0)
             {
                 userProfile = $"_{userProfile}";
             }
-
-        } catch (ArgumentException ) {
+        }
+        catch (ArgumentException)
+        {
             // Syntax error in the regular expression
         }
 
-        Log.Information("{Header}",Header);
+        Log.Information("{Header}", Header);
         Console.WriteLine();
-        Log.Information("Command line: {Args}",string.Join(" ", Environment.GetCommandLineArgs().Skip(1)));
+        Log.Information("Command line: {Args}", string.Join(" ", Environment.GetCommandLineArgs().Skip(1)));
         Console.WriteLine();
 
         if (IsAdministrator() == false)
@@ -227,593 +217,213 @@ internal class Program
             Log.Warning("Warning: Administrator privileges not found!");
             Console.WriteLine();
         }
-     
-
-        DumpSqliteDll();
 
         var sw1 = new Stopwatch();
         sw1.Start();
 
-        var apes = new List<ActivityPackageIdEntry>();
-        var activitys = new List<ActivityEntry>();
-        var aoes = new List<ActivityOperationEntry>();
-
-        var dbFactory = new OrmLiteConnectionFactory(f, SqliteDialect.Provider);
+        ActivitiesCacheData data;
 
         try
         {
-            SqliteDialect.Provider.RegisterConverter<DateTimeOffset>(new EpochConverter());
-            SqliteDialect.Provider.RegisterConverter<DateTimeOffset?>(new EpochConverter());
+            data = ActivitiesCache.Read(f);
+        }
+        catch (InvalidDataException e)
+        {
+            Log.Error("Error processing database: '{F}': {Message}", f, e.Message);
+            Console.WriteLine();
+            return 1;
+        }
+        catch (Exception e)
+        {
+            Log.Error(e, "Error processing database: {Message}", e.Message);
+            Console.WriteLine();
+            return 1;
+        }
 
-            using (var db = dbFactory.OpenDbConnection())
+        var exitCode = 0;
+
+        if (data.QuickCheck != "ok")
+        {
+            Log.Warning("The database is damaged ({Problem}). What could be read is listed", data.QuickCheck.Split('\n')[0]);
+        }
+
+        if (data.HasTimelineTables == false)
+        {
+            Log.Error("'{F}' has none of the Activity, ActivityOperation and Activity_PackageId tables. Is it an ActivitiesCache.db?", f);
+            Console.WriteLine();
+            return 1;
+        }
+
+        foreach (var table in ActivitiesCache.Tables)
+        {
+            if (data.MissingTables.Contains(table))
             {
-                try
-                {
-                    var activityOperations = db.Select<ActivityOperation>();
-
-                    Log.Information("{Table} entries found: {Count:N0}","ActivityOperation",activityOperations.Count);
-
-                    foreach (var op in activityOperations)
-                    {
-                        string exeName;
-
-                        var appIdInfo = op.AppId.FromJson<List<AppIdInfo>>();
-
-                        var idInfo = appIdInfo.FirstOrDefault(t =>
-                            t.Platform.EqualsIgnoreCase("windows_win32") ||
-                            t.Platform.EqualsIgnoreCase("x_exe_path"));
-
-                        if (idInfo == null)
-                        {
-                            idInfo = appIdInfo.First();
-                        }
-
-                        if (idInfo.Application.Contains(".exe"))
-                        {
-                            var segs = idInfo.Application.Split('\\');
-
-                            if (segs[0].StartsWith("{"))
-                            {
-                                var newname = GuidMapping.GuidMapping.GetDescriptionFromGuid(segs[0]);
-
-                                segs[0] = newname;
-
-                                exeName = string.Join("\\", segs);
-                            }
-                            else
-                            {
-                                exeName = idInfo.Application;
-                            }
-                        }
-                        else
-                        {
-                            exeName = idInfo.Application;
-                        }
-
-                        var displayText = string.Empty;
-                        var contentInfo = string.Empty;
-                        var devicePlatform = string.Empty;
-                        var timeZone = string.Empty;
-                        var description = string.Empty;
-
-                        var payload = Encoding.ASCII.GetString(op.Payload);
-
-                        var clipPay = string.Empty;
-
-                        if (op.ClipboardPayload is { Length: > 0 })
-                        {
-                            clipPay = Encoding.ASCII.GetString(op.ClipboardPayload);
-                        }
-
-                        if (payload.StartsWith("{"))
-                        {
-                            var dti = payload.FromJson<PayloadData>();
-
-                            timeZone = dti.UserTimezone;
-                            devicePlatform = dti.DevicePlatform;
-                            displayText = dti.DisplayText;
-
-                            if (dti.ContentUri != null || dti.Description != null)
-                            {
-                                displayText = $"{dti.DisplayText} ({dti.AppDisplayName})";
-
-                                var ci = dti.ContentUri.UrlDecode();
-
-                                contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
-
-                                if (ci != null)
-                                {
-                                    if (ci.Contains("{") & ci.Contains("}"))
-                                    {
-                                        var start = ci.Substring(0, 5);
-                                        var guid = ci.Substring(6, 36);
-                                        var end = ci.Substring(43);
-
-                                        var upContent =
-                                            $"{start}{GuidMapping.GuidMapping.GetDescriptionFromGuid(guid)}{end}";
-
-                                        contentInfo = $"{dti.Description} ({upContent})";
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            payload = "(Binary data)";
-                        }
-
-                        var aoe = new ActivityOperationEntry(op.Id.ToString(), op.OperationOrder, op.AppId, exeName,
-                            op.ActivityType, op.LastModifiedTime, op.ExpirationTime, payload, op.CreatedTime,
-                            op.EndTime, op.LastModifiedOnClient, op.OperationExpirationTime, op.PlatformDeviceId,
-                            op.OperationType, devicePlatform, timeZone, description, op.StartTime, displayText,
-                            clipPay, contentInfo);
-
-                        aoes.Add(aoe);
-                    }
-                }
-                catch (Exception e)
-                {
-                    if (e.Message.Contains("no such table"))
-                    {
-                        Log.Error("{Table} table does not exist!","ActivityOperation");
-                    }
-                    else
-                    {
-                        Log.Error(e,"Error processing {Table} table: {Message}","ActivityOperation",e.Message);
-                    }
-                }
-
-                try
-                {
-                    var activityPackageIds = db.Select<ActivityPackageId>();
-
-                    Log.Information("{Table} entries found: {Count:N0}","Activity_PackageId",activityPackageIds.Count);
-
-                    foreach (var packageId in activityPackageIds)
-                    {
-                        var exeName = string.Empty;
-
-                        if (packageId.PackageName.Contains(".exe"))
-                        {
-                            var segs = packageId.PackageName.Split('\\');
-
-                            if (segs[0].StartsWith("{"))
-                            {
-                                var newname = GuidMapping.GuidMapping.GetDescriptionFromGuid(segs[0]);
-
-                                segs[0] = newname;
-
-                                exeName = string.Join("\\", segs);
-                            }
-                        }
-
-                        var ape = new ActivityPackageIdEntry(packageId.ActivityId.ToString(), packageId.Platform,
-                            packageId.PackageName, exeName, packageId.ExpirationTime);
-
-                        apes.Add(ape);
-                    }
-                }
-                catch (Exception e)
-                {
-                    if (e.Message.Contains("no such table"))
-                    {
-                        Log.Error("{Table} table does not exist!","ActivityPackageId");
-                    }
-                    else
-                    {
-                        Log.Error(e,"Error processing {Table} table: {Message}","ActivityPackageId",e.Message);
-                    }
-                }
-
-                try
-                {
-                    var activities = db.Select<Classes.Activity>();
-
-                    Log.Information("{Table} entries found: {Count:N0}","Activity",activities.Count);
-
-                    foreach (var act in activities)
-                    {
-                        var foo = act.AppId.FromJson<List<AppIdInfo>>();
-
-                        var win32 = foo.FirstOrDefault(
-                            t => t.Platform == "windows_win32" || t.Platform == "x_exe_path");
-
-                        string exe;
-
-                        if (win32 != null)
-                        {
-                            exe = win32.Application;
-                        }
-                        else
-                        {
-                            var wu = foo.FirstOrDefault(t => t.Platform == "windows_universal");
-                            if (wu != null)
-                            {
-                                exe = wu.Application;
-                            }
-                            else
-                            {
-                                exe = foo.First().Application;
-                            }
-                        }
-
-                        if (exe.StartsWith("{"))
-                        {
-                            var segs = exe.Split('\\');
-
-                            if (segs[0].StartsWith("{"))
-                            {
-                                var newname = GuidMapping.GuidMapping.GetDescriptionFromGuid(segs[0]);
-
-                                segs[0] = newname;
-
-                                exe = string.Join("\\", segs);
-                            }
-                        }
-
-                        var displayText = string.Empty;
-                        var contentInfo = string.Empty;
-                        var devicePlatform = string.Empty;
-                        var timeZone = string.Empty;
-
-                        var clipPay = string.Empty;
-
-                        if (act.ClipboardPayload is { Length: > 0 })
-                        {
-                            clipPay = Encoding.ASCII.GetString(act.ClipboardPayload);
-                        }
-
-                        var payload = Encoding.ASCII.GetString(act.Payload);
-
-                        if (payload.StartsWith("{"))
-                        {
-                            var dti = payload.FromJson<PayloadData>();
-
-                            timeZone = dti.UserTimezone;
-                            devicePlatform = dti.DevicePlatform;
-                            displayText = dti.DisplayText;
-
-                            if (dti.ContentUri != null || dti.Description != null)
-                            {
-                                displayText = $"{dti.DisplayText} ({dti.AppDisplayName})";
-
-                                var ci = dti.ContentUri.UrlDecode();
-
-                                contentInfo = $"{dti.Description} ({dti.ContentUri.UrlDecode()})";
-
-                                if (ci != null)
-                                {
-                                    if (ci.Contains("{") & ci.Contains("}"))
-                                    {
-                                        var start = ci.Substring(0, 5);
-                                        var guid = ci.Substring(6, 36);
-                                        var end = ci.Substring(43);
-
-                                        var upContent =
-                                            $"{start}{GuidMapping.GuidMapping.GetDescriptionFromGuid(guid)}{end}";
-
-                                        contentInfo = $"{dti.Description} ({upContent})";
-                                    }
-                                }
-                            }
-                        }
-                        else
-                        {
-                            payload = "(Binary data)";
-                        }
-
-                        var a = new ActivityEntry(act.Id.ToString(), exe, displayText, contentInfo,
-                            act.LastModifiedTime, act.ExpirationTime, act.CreatedInCloud, act.StartTime,
-                            act.EndTime,
-                            act.LastModifiedOnClient, act.OriginalLastModifiedOnClient, act.ActivityType,
-                            act.IsLocalOnly == 1, act.ETag, act.PackageIdHash, act.PlatformDeviceId, devicePlatform,
-                            timeZone, payload,   clipPay);
-
-                        activitys.Add(a);
-                    }
-                }
-                catch (Exception e)
-                {
-                    if (e.Message.Contains("no such table"))
-                    {
-                        Log.Error("{Activity} table does not exist!","Activity");
-                    }
-                    else
-                    {
-                        Log.Error(e,"Error processing {Activity} table: {Message}","Activity",e.Message);
-                    }
-                }
+                Log.Warning("{Table} table does not exist!", table);
+                continue;
             }
 
-            //write out csv files
+            var count = table switch
+            {
+                "ActivityOperation" => data.Operations.Count,
+                "Activity_PackageId" => data.PackageIds.Count,
+                _ => data.Activities.Count
+            };
+            Log.Information("{Table} entries found: {Count:N0}", table, count);
+        }
 
+        foreach (var error in data.TableErrors)
+        {
+            Log.Error("Error processing {Error}", error);
+            exitCode = 1;
+        }
+
+        if (data.ParseErrors.Count > 0)
+        {
+            Console.WriteLine();
+            Log.Warning("Values that could not be read (the rows are listed with the rest):");
+            foreach (var error in data.ParseErrors)
+            {
+                Log.Warning("  {Error}", error);
+            }
+        }
+
+        try
+        {
             if (Directory.Exists(csv) == false)
             {
-                try
-                {
-                    Directory.CreateDirectory(csv);
-                }
-                catch (Exception ex)
-                {
-                    Log.Error(ex, "There was an error creating directory '{Csv}'. Error: {Message} Exiting",csv);
-                    return;
-                }
+                Directory.CreateDirectory(csv);
             }
 
             var ts1 = DateTime.Now.ToString("yyyyMMddHHmmss");
 
-            if (aoes.Count > 0)
+            if (data.Operations.Count > 0)
             {
-                var aoesFile = $"{ts1}{userProfile}_ActivityOperations.csv";
-                var aoesOut = Path.Combine(csv, aoesFile);
-
-                using var sw = new StreamWriter(aoesOut, false, Encoding.UTF8);
-                var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
-
-                var o = new TypeConverterOptions
-                {
-                    DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
-                };
-                csvWriter.Context.TypeConverterOptionsCache.AddOptions<ActivityOperationEntry>(o);
-
-                var foo = csvWriter.Context.AutoMap<ActivityOperationEntry>();
-
-                foo.Map(t => t.Id).Index(0);
-                foo.Map(t => t.ActivityTypeOrg).Index(1);
-                foo.Map(t => t.ActivityType).Index(2);
-                foo.Map(t => t.Executable).Index(3);
-                foo.Map(t => t.DisplayText).Index(4);
-                foo.Map(t => t.ContentInfo).Index(5);
-                foo.Map(t => t.Payload).Index(6);
-                foo.Map(t => t.ClipboardPayload).Index(7);
-                foo.Map(t => t.StartTime).Convert(t =>
-                    t.Value.StartTime.Year == 1
-                        ? ""
-                        : t.Value.StartTime.ToString(dt)).Index(8);
-                foo.Map(t => t.EndTime).Convert(t =>
-                    t.Value.EndTime?.Year == 1
-                        ? ""
-                        : t.Value.EndTime?.ToString(dt)).Index(9);
-                foo.Map(t => t.Duration).Index(10);
-                foo.Map(t => t.LastModifiedTime).Convert(t =>
-                    t.Value.LastModifiedTime.ToString(dt)).Index(11);
-                foo.Map(t => t.LastModifiedTimeOnClient).Convert(t =>
-                        t.Value.LastModifiedTimeOnClient.ToString(dt))
-                    .Index(12);
-                foo.Map(t => t.CreatedTime).Convert(t =>
-                    t.Value.CreatedTime.ToString(dt)).Index(13);
-
-                foo.Map(t => t.ExpirationTime).Convert(t =>
-                    t.Value.ExpirationTime.ToString(dt)).Index(14);
-                foo.Map(t => t.OperationExpirationTime).Convert(t =>
-                        t.Value.OperationExpirationTime.ToString(dt))
-                    .Index(15);
-
-                foo.Map(t => t.OperationOrder).Index(16);
-
-                foo.Map(t => t.AppId).Index(17);
-
-                foo.Map(t => t.OperationType).Index(18);
-                foo.Map(t => t.Description).Index(19);
-
-                foo.Map(t => t.PlatformDeviceId).Index(20);
-                foo.Map(t => t.DevicePlatform).Index(21);
-                foo.Map(t => t.TimeZone).Index(22);
-
-
-                csvWriter.Context.RegisterClassMap(foo);
-
-                csvWriter.WriteHeader<ActivityOperationEntry>();
-                csvWriter.NextRecord();
-                csvWriter.WriteRecords(aoes);
-
-                sw.Flush();
+                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_ActivityOperations.csv"), data.Operations, OperationMap(dt));
             }
 
-            if (apes.Count > 0)
+            if (data.PackageIds.Count > 0)
             {
-                var apesFile = $"{ts1}{userProfile}_Activity_PackageIDs.csv";
-                var apesOut = Path.Combine(csv, apesFile);
-
-                using var sw = new StreamWriter(apesOut, false, Encoding.UTF8);
-                var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
-
-                var o = new TypeConverterOptions
-                {
-                    DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
-                };
-                csvWriter.Context.TypeConverterOptionsCache.AddOptions<ActivityPackageIdEntry>(o);
-
-                var foo = csvWriter.Context.AutoMap<ActivityPackageIdEntry>();
-
-                foo.Map(t => t.Id).Index(0);
-                foo.Map(t => t.Platform).Index(1);
-                foo.Map(t => t.Name).Index(2);
-                foo.Map(t => t.AdditionalInformation).Index(3);
-                foo.Map(t => t.Expires)
-                    .Convert(t => t.Value.Expires.ToString(dt))
-                    .Index(4);
-
-                csvWriter.Context.RegisterClassMap(foo);
-
-                csvWriter.WriteHeader<ActivityPackageIdEntry>();
-                csvWriter.NextRecord();
-                csvWriter.WriteRecords(apes);
-
-                sw.Flush();
+                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_Activity_PackageIDs.csv"), data.PackageIds, PackageIdMap(dt));
             }
 
-            if (activitys.Count > 0)
+            if (data.Activities.Count > 0)
             {
-                var actsFile = $"{ts1}{userProfile}_Activity.csv";
-                var actsOut = Path.Combine(csv, actsFile);
-
-                using var sw = new StreamWriter(actsOut, false, Encoding.UTF8);
-                var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
-
-                var o = new TypeConverterOptions
-                {
-                    DateTimeStyle = DateTimeStyles.AssumeUniversal & DateTimeStyles.AdjustToUniversal
-                };
-                csvWriter.Context.TypeConverterOptionsCache.AddOptions<ActivityEntry>(o);
-
-                var foo = csvWriter.Context.AutoMap<ActivityEntry>();
-
-                foo.Map(t => t.Id).Index(0);
-                foo.Map(t => t.ActivityTypeOrg).Index(1);
-                foo.Map(t => t.ActivityType).Index(2);
-                foo.Map(t => t.Executable).Index(3);
-                foo.Map(t => t.DisplayText).Index(4);
-                foo.Map(t => t.ContentInfo).Index(5);
-                foo.Map(t => t.Payload).Index(6);
-                foo.Map(t => t.ClipboardPayload).Index(7);
-                foo.Map(t => t.StartTime)
-                    .Convert(t => t.Value.StartTime.ToString(dt))
-                    .Index(8);
-                foo.Map(t => t.EndTime).Convert(t =>
-                    t.Value.EndTime?.ToString(dt) + "").Index(9);
-                foo.Map(t => t.Duration).Index(10);
-                foo.Map(t => t.LastModifiedTime).Convert(t =>
-                    t.Value.LastModifiedTime.ToString(dt)).Index(11);
-                foo.Map(t => t.LastModifiedOnClient).Convert(t =>
-                    t.Value.LastModifiedOnClient.ToString(dt)).Index(12);
-                foo.Map(t => t.OriginalLastModifiedOnClient).Convert(t =>
-                        t.Value.OriginalLastModifiedOnClient?.ToString(dt) +
-                        "")
-                    .Index(13);
-                foo.Map(t => t.ExpirationTime).Convert(t =>
-                    t.Value.ExpirationTime.ToString(dt)).Index(14);
-                foo.Map(t => t.CreatedInCloud).Convert(t =>
-                    t.Value.CreatedInCloud?.ToString(dt) + "").Index(15);
-
-                foo.Map(t => t.IsLocalOnly).Index(16);
-                foo.Map(t => t.ETag).Index(17);
-                foo.Map(t => t.PackageIdHash).Index(18);
-
-                foo.Map(t => t.PlatformDeviceId).Index(19);
-                foo.Map(t => t.DevicePlatform).Index(20);
-                foo.Map(t => t.TimeZone).Index(21);
-
-                csvWriter.Context.RegisterClassMap(foo);
-
-                csvWriter.WriteHeader<ActivityEntry>();
-                csvWriter.NextRecord();
-                csvWriter.WriteRecords(activitys);
-
-                sw.Flush();
+                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_Activity.csv"), data.Activities, ActivityMap(dt));
             }
         }
-        catch (Exception e)
+        catch (Exception ex)
         {
-            if (e.Message.Contains("file is not a database"))
-            {
-                Log.Error(
-                    "Error processing database: '{F}' is not a sqlite database",f);
-            }
-            else
-            {
-                Log.Error(e,"Error processing database: {Message}",e.Message);
-            }
+            Log.Error(ex, "There was an error saving to '{Csv}': {Message}", csv, ex.Message);
+            Console.WriteLine();
+            return 1;
         }
-        
 
         sw1.Stop();
 
         Console.WriteLine();
-        Log.Information("Results saved to: {Csv}",csv);
+        Log.Information("Results saved to: {Csv}", csv);
 
         Console.WriteLine();
-        Log.Information(
-            "Processing complete in {TotalSeconds:N4} seconds",sw1.Elapsed.TotalSeconds);
+        Log.Information("Processing complete in {TotalSeconds:N4} seconds", sw1.Elapsed.TotalSeconds);
         Console.WriteLine();
 
-#if NET6_0_OR_GREATER
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)){ 
-        if (File.Exists("libSQLite.Interop.so"))
-        {
-            try
-            {
-                File.Delete("libSQLite.Interop.so");
-            }
-            catch (Exception)
-            {
-                Log.Warning("Unable to delete {Sql}. Delete manually if needed","libSQLite.Interop.so");
-                Console.WriteLine();
-            }
-        }
-        } else {
-        if (File.Exists("SQLite.Interop.dll"))
-        {
-            try
-            {
-                File.Delete("SQLite.Interop.dll");
-            }
-            catch (Exception)
-            {
-                Log.Warning("Unable to delete {Sql}. Delete manually if needed","SQLite.Interop.dll");
-                Console.WriteLine();
-            }
-        }
-        }
-#else
-        if (File.Exists("SQLite.Interop.dll"))
-        {
-            try
-            {
-                File.Delete("SQLite.Interop.dll");
-            }
-            catch (Exception)
-            {
-                Log.Warning("Unable to delete {Sql}. Delete manually if needed","SQLite.Interop.dll");
-                Console.WriteLine();
-            }
-        }
-#endif        
+        return exitCode;
     }
 
-    private static void DumpSqliteDll()
+    private static string Time(DateTimeOffset? time, string dt)
     {
-#if NET6_0_OR_GREATER
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux)){
-        var sqllitefile = "libSQLite.Interop.so"; 
+        return time?.ToString(dt, CultureInfo.InvariantCulture) ?? "";
+    }
 
-        if (Environment.Is64BitProcess)
-        {
-            File.WriteAllBytes(sqllitefile, Resources.x64SQLite_Interop_linux);
-        }
-        else
-        {
-            //32 Bit Not Tested on Linux
-            //File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop_linux);
-            Log.Warning("32 Bit Linux Not Supported! Exiting");
-            Console.WriteLine();
-            Environment.Exit(-1);
-        }
-        } else {
+    private static void WriteCsv<T>(string path, IEnumerable<T> rows, ClassMap<T> map)
+    {
+        using var sw = new StreamWriter(path, false, Encoding.UTF8);
+        using var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
 
-        var sqllitefile = "SQLite.Interop.dll";
+        csvWriter.Context.RegisterClassMap(map);
 
-        if (Environment.Is64BitProcess)
-        {
-            File.WriteAllBytes(sqllitefile, Resources.x64SQLite_Interop);
-        }
-        else
-        {
-            File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop);
-        }
-        }
-#else
-        var sqllitefile = "SQLite.Interop.dll";
+        csvWriter.WriteHeader<T>();
+        csvWriter.NextRecord();
+        csvWriter.WriteRecords(rows);
+    }
 
-        if (Environment.Is64BitProcess)
-        {
-            File.WriteAllBytes(sqllitefile, Resources.x64SQLite_Interop);
-        }
-        else
-        {
-            File.WriteAllBytes(sqllitefile, Resources.x86SQLite_Interop);
-        }
-#endif        
+    /// <summary>The columns of 2026.5 in their order; new columns go at the end</summary>
+    internal static ClassMap<ActivityOperationEntry> OperationMap(string dt)
+    {
+        var map = new DefaultClassMap<ActivityOperationEntry>();
+
+        map.Map(t => t.Id).Index(0);
+        map.Map(t => t.ActivityTypeOrg).Index(1);
+        map.Map(t => t.ActivityType).Index(2);
+        map.Map(t => t.Executable).Index(3);
+        map.Map(t => t.DisplayText).Index(4);
+        map.Map(t => t.ContentInfo).Index(5);
+        map.Map(t => t.Payload).Index(6);
+        map.Map(t => t.ClipboardPayload).Index(7);
+        map.Map(t => t.StartTime).Convert(t => Time(t.Value.StartTime, dt)).Index(8);
+        map.Map(t => t.EndTime).Convert(t => Time(t.Value.EndTime, dt)).Index(9);
+        map.Map(t => t.Duration).Index(10);
+        map.Map(t => t.LastModifiedTime).Convert(t => Time(t.Value.LastModifiedTime, dt)).Index(11);
+        map.Map(t => t.LastModifiedTimeOnClient).Convert(t => Time(t.Value.LastModifiedTimeOnClient, dt)).Index(12);
+        map.Map(t => t.CreatedTime).Convert(t => Time(t.Value.CreatedTime, dt)).Index(13);
+        map.Map(t => t.ExpirationTime).Convert(t => Time(t.Value.ExpirationTime, dt)).Index(14);
+        map.Map(t => t.OperationExpirationTime).Convert(t => Time(t.Value.OperationExpirationTime, dt)).Index(15);
+        map.Map(t => t.OperationOrder).Index(16);
+        map.Map(t => t.AppId).Index(17);
+        map.Map(t => t.OperationType).Index(18);
+        map.Map(t => t.Description).Index(19);
+        map.Map(t => t.PlatformDeviceId).Index(20);
+        map.Map(t => t.DevicePlatform).Index(21);
+        map.Map(t => t.TimeZone).Index(22);
+        map.Map(t => t.AppActivityId).Index(23);
+        map.Map(t => t.ClipboardText).Index(24);
+
+        return map;
+    }
+
+    internal static ClassMap<ActivityPackageIdEntry> PackageIdMap(string dt)
+    {
+        var map = new DefaultClassMap<ActivityPackageIdEntry>();
+
+        map.Map(t => t.Id).Index(0);
+        map.Map(t => t.Platform).Index(1);
+        map.Map(t => t.Name).Index(2);
+        map.Map(t => t.AdditionalInformation).Index(3);
+        map.Map(t => t.Expires).Convert(t => Time(t.Value.Expires, dt)).Index(4);
+
+        return map;
+    }
+
+    internal static ClassMap<ActivityEntry> ActivityMap(string dt)
+    {
+        var map = new DefaultClassMap<ActivityEntry>();
+
+        map.Map(t => t.Id).Index(0);
+        map.Map(t => t.ActivityTypeOrg).Index(1);
+        map.Map(t => t.ActivityType).Index(2);
+        map.Map(t => t.Executable).Index(3);
+        map.Map(t => t.DisplayText).Index(4);
+        map.Map(t => t.ContentInfo).Index(5);
+        map.Map(t => t.Payload).Index(6);
+        map.Map(t => t.ClipboardPayload).Index(7);
+        map.Map(t => t.StartTime).Convert(t => Time(t.Value.StartTime, dt)).Index(8);
+        map.Map(t => t.EndTime).Convert(t => Time(t.Value.EndTime, dt)).Index(9);
+        map.Map(t => t.Duration).Index(10);
+        map.Map(t => t.LastModifiedTime).Convert(t => Time(t.Value.LastModifiedTime, dt)).Index(11);
+        map.Map(t => t.LastModifiedOnClient).Convert(t => Time(t.Value.LastModifiedOnClient, dt)).Index(12);
+        map.Map(t => t.OriginalLastModifiedOnClient).Convert(t => Time(t.Value.OriginalLastModifiedOnClient, dt)).Index(13);
+        map.Map(t => t.ExpirationTime).Convert(t => Time(t.Value.ExpirationTime, dt)).Index(14);
+        map.Map(t => t.CreatedInCloud).Convert(t => Time(t.Value.CreatedInCloud, dt)).Index(15);
+        map.Map(t => t.IsLocalOnly).Index(16);
+        map.Map(t => t.ETag).Index(17);
+        map.Map(t => t.PackageIdHash).Index(18);
+        map.Map(t => t.PlatformDeviceId).Index(19);
+        map.Map(t => t.DevicePlatform).Index(20);
+        map.Map(t => t.TimeZone).Index(21);
+        map.Map(t => t.AppActivityId).Index(22);
+        map.Map(t => t.ClipboardText).Index(23);
+
+        return map;
     }
 
     private class CustomHelpAction : SynchronousCommandLineAction
@@ -829,61 +439,9 @@ internal class Program
         {
             var result = _defaultHelp.Invoke(parseResult);
 
-            Log.Warning("{Msg}", string.Join(" ",parseResult.Tokens));
+            Log.Warning("{Msg}", string.Join(" ", parseResult.Tokens));
 
             return result;
         }
     }
-  
-}
-
-public class EpochConverter : DateTimeConverter
-{
-    public override string ColumnDefinition => "DATETIME";
-
-    public override DbType DbType => DbType.DateTime;
-
-    public override object FromDbValue(Type fieldType, object value)
-    {
-        return (DateTimeOffset) value;
-    }
-
-    public override object GetValue(IDataReader reader, int columnIndex, object[] values)
-    {
-        if (reader.IsDBNull(columnIndex))
-        {
-            return null;
-        }
-
-        var val = 0;
-        try
-        {
-            val = reader.GetInt32(columnIndex);
-        }
-        catch (Exception)
-        {
-            // ignored
-        }
-
-        if (val == 0)
-        {
-            return null;
-        }
-
-        return DateTimeOffset.FromUnixTimeSeconds(val).ToUniversalTime();
-    }
-    
-  
-}
-
-
-internal class ApplicationArguments
-{
-    public string File { get; set; }
-
-    public string CsvDirectory { get; set; }
-
-    public string DateTimeFormat { get; set; }
-
-    public bool Debug { get; set; }
 }
