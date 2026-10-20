@@ -45,15 +45,16 @@ public static class ActivitiesCache
     private static readonly UTF8Encoding StrictUtf8 = new(false, true);
 
     /// <summary>
-    ///     Reads the database at <paramref name="path" />. The database (with its -wal and -journal) is copied to a
-    ///     temporary folder and only the copy is opened, so nothing is written next to the evidence
+    ///     Reads the database at <paramref name="path" />. The database (with its -wal and -journal) is copied to a new
+    ///     folder in <paramref name="tempFolder" /> (null: the system's temp folder) and only the copy is opened, so
+    ///     nothing is written next to the evidence
     /// </summary>
     /// <exception cref="InvalidDataException">the file is not a SQLite database, or its list of tables cannot be read</exception>
-    public static ActivitiesCacheData Read(string path)
+    public static ActivitiesCacheData Read(string path, string tempFolder = null)
     {
         var data = new ActivitiesCacheData();
 
-        using var db = SqliteCopy.Open(path);
+        using var db = SqliteCopy.Open(path, tempFolder);
 
         try
         {

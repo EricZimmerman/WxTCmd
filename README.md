@@ -23,6 +23,7 @@ WxTCmd parses the Windows 10/11 Timeline database, `ActivitiesCache.db`.
       -f <f>          File to process
       --csv <csv>     Directory to save CSV formatted results to. Be sure to include the full path in double quotes
       --dt <dt>       The custom date/time format to use when displaying time stamps. See https://goo.gl/CNVq0k for options [default: yyyy-MM-dd HH:mm:ss]
+      --temp <temp>   Folder for the temporary copies of the SQLite databases, which are opened instead of the evidence and deleted when done. Default: a Temp folder next to WxTCmd. A folder that isn't there is created, and removed again when done. If that folder can't be written to, WxTCmd stops: give a writable folder with --temp
       --debug         Show debug information during processing
       --trace         Show trace information during processing
       -?, -h, --help  Show help and usage information
@@ -32,7 +33,7 @@ WxTCmd parses the Windows 10/11 Timeline database, `ActivitiesCache.db`.
 
 One CSV per table with rows: `<timestamp>_<user>_Activity.csv`, `_Activity_PackageIDs.csv` and `_ActivityOperations.csv` (the user name comes from a `Users` folder in the path). Times are UTC.
 
-- The database is copied (with its `-wal` and `-journal`) to a temporary folder and only the copy is read, so the evidence is not changed. Rows that are only in the `-wal` (all of them, in some Windows 11 databases) are included, so keep the `-wal` next to the database.
+- The database is copied (with its `-wal` and `-journal`) to a temporary folder and only the copy is read, so the evidence is not changed. That folder is `--temp`, or by default a `Temp` folder next to WxTCmd (never the user's `%TEMP%`); the copy is deleted when done. If the folder can't be written to, WxTCmd stops and asks for `--temp`. Rows that are only in the `-wal` (all of them, in some Windows 11 databases) are included, so keep the `-wal` next to the database.
 - `ClipboardText` is the text in `ClipboardPayload` (clipboard history synced to the cloud, activity type 10), decoded from base64.
 - A value that can't be read is listed in the console and the rest of the row is kept. A damaged database gives the rows that could be read.
 - Exit code 0, or 1 for bad arguments, a file that is not a timeline database or could not be read completely, or CSV files that could not be written.

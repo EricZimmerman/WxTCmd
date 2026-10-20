@@ -77,6 +77,11 @@ internal class Program
             DefaultValueFactory = _ => "yyyy-MM-dd HH:mm:ss"
         };
 
+        var tempOpt = new Option<string>("--temp")
+        {
+            Description = TempFolder.Help
+        };
+
         var debugOpt = new Option<bool>("--debug")
         {
             Description = "Show debug information during processing",
@@ -93,6 +98,7 @@ internal class Program
             fOpt,
             csvOpt,
             dtOpt,
+            tempOpt,
             debugOpt,
             traceOpt
         };
@@ -100,7 +106,7 @@ internal class Program
         _rootCommand.Description = Header + "\r\n\r\n" + Footer;
 
         _rootCommand.SetAction(result => DoWork(result.GetValue(fOpt), result.GetValue(csvOpt), result.GetValue(dtOpt),
-            result.GetValue(debugOpt), result.GetValue(traceOpt)));
+            result.GetValue(tempOpt), result.GetValue(debugOpt), result.GetValue(traceOpt)));
 
         var exitCode = await _rootCommand.Parse(args).InvokeAsync();
 
@@ -148,7 +154,7 @@ internal class Program
         return 1;
     }
 
-    private static int DoWork(string f, string csv, string dt, bool debug, bool trace)
+    private static int DoWork(string f, string csv, string dt, string temp, bool debug, bool trace)
     {
         var levelSwitch = new LoggingLevelSwitch();
 
@@ -218,6 +224,15 @@ internal class Program
             Console.WriteLine();
         }
 
+        //the database is read from a copy, made in --temp or Temp next to WxTCmd (never the user's %TEMP%)
+        var tempFolder = TempFolder.Prepare(temp, out var tempCreated, out var tempError);
+        if (tempFolder == null)
+        {
+            Log.Error("The folder for the temporary copy of the database can't be written to ({Error}). Give one with --temp. Exiting", tempError);
+            Console.WriteLine();
+            return 1;
+        }
+
         var sw1 = new Stopwatch();
         sw1.Start();
 
@@ -225,7 +240,7 @@ internal class Program
 
         try
         {
-            data = ActivitiesCache.Read(f);
+            data = ActivitiesCache.Read(f, tempFolder);
         }
         catch (InvalidDataException e)
         {
@@ -238,6 +253,10 @@ internal class Program
             Log.Error(e, "Error processing database: {Message}", e.Message);
             Console.WriteLine();
             return 1;
+        }
+        finally
+        {
+            TempFolder.RemoveIfEmpty(tempFolder, tempCreated);
         }
 
         var exitCode = 0;

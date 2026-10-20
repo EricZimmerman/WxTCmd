@@ -22,6 +22,13 @@ public class CliTests : TestData
             UseShellExecute = false,
             WorkingDirectory = Dir
         };
+        //the user's temp folder: an empty one, which must stay empty (the copy goes to --temp or Temp next to WxTCmd)
+        Directory.CreateDirectory(SystemTemp);
+        foreach (var name in new[] { "TEMP", "TMP", "TMPDIR" })
+        {
+            start.Environment[name] = SystemTemp;
+        }
+
         start.ArgumentList.Add(Path.Combine(TestContext.CurrentContext.TestDirectory, "WxTCmd.dll"));
         foreach (var arg in args)
         {
@@ -34,10 +41,19 @@ public class CliTests : TestData
         process.StandardInput.Close();
 
         process.WaitForExit(300_000).Should().BeTrue("WxTCmd should finish");
+        Directory.GetFileSystemEntries(SystemTemp).Should().BeEmpty("nothing goes to the user's temp folder");
+        if (Directory.Exists(TempNextToProgram))
+        {
+            Directory.GetDirectories(TempNextToProgram, "WxTCmd-*").Should().BeEmpty("the copy is deleted");
+        }
         return (process.ExitCode, stdout.Result + stderr.Result);
     }
 
     private string Out => Path.Combine(Dir, "out");
+
+    private string SystemTemp => Path.Combine(Dir, "systemp");
+
+    private static string TempNextToProgram => Path.Combine(TestContext.CurrentContext.TestDirectory, "Temp");
 
     private string Csv(string suffix) => Directory.GetFiles(Out, "*" + suffix).Single();
 
@@ -144,5 +160,53 @@ public class CliTests : TestData
         Run("-f", db, "--csv", Out).ExitCode.Should().Be(0);
 
         Directory.GetFiles(Dir).Should().BeEmpty();
+    }
+
+    [Test]
+    public void CopyGoesToTempNextToTheProgram()
+    {
+        var existed = Directory.Exists(TempNextToProgram);
+
+        var (code, output) = Run("-f", Sample("plaso"), "--csv", Out, "--debug");
+
+        code.Should().Be(0, output);
+        //the copy's folder is deleted, and Temp too when this run made it and it is empty
+        if (Directory.Exists(TempNextToProgram))
+        {
+            existed.Should().BeTrue("Temp is removed when the run created it and it is empty");
+            Directory.GetDirectories(TempNextToProgram, "WxTCmd-*").Should().BeEmpty();
+        }
+    }
+
+    [Test]
+    public void CopyGoesToTheTempGiven()
+    {
+        var temp = Path.Combine(Dir, "my temp");
+        Directory.CreateDirectory(temp);
+
+        var (code, output) = Run("-f", Sample("plaso"), "--csv", Out, "--temp", temp);
+
+        code.Should().Be(0, output);
+        Directory.Exists(temp).Should().BeTrue("a folder that was there is kept");
+        Directory.GetFileSystemEntries(temp).Should().BeEmpty("the copy is deleted when done");
+
+        //one that wasn't there is created, and removed again
+        var newTemp = Path.Combine(Dir, "new temp");
+        Run("-f", Sample("plaso"), "--csv", Out, "--temp", newTemp).ExitCode.Should().Be(0);
+        Directory.Exists(newTemp).Should().BeFalse();
+    }
+
+    [Test]
+    public void TempThatCantBeWrittenStops()
+    {
+        //a folder under a file can't be created
+        var file = Path.Combine(Dir, "a file");
+        File.WriteAllText(file, "x");
+
+        var (code, output) = Run("-f", Sample("plaso"), "--csv", Out, "--temp", Path.Combine(file, "temp"));
+
+        code.Should().Be(1, output);
+        output.Should().Contain("Give one with --temp");
+        Directory.Exists(Out).Should().BeFalse("nothing was processed");
     }
 }

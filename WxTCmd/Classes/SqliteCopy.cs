@@ -5,8 +5,9 @@ using Microsoft.Data.Sqlite;
 namespace WxTCmd.Classes;
 
 /// <summary>
-///     A database copied (with its -wal and -journal) to a temporary folder, deleted when disposed. Opening the evidence
-///     itself would checkpoint the WAL into it and delete the -wal and -shm files
+///     A database copied (with its -wal and -journal) to a new folder in the temporary folder (--temp, or Temp next to
+///     WxTCmd: <see cref="TempFolder" />), deleted when disposed. Opening the evidence itself would checkpoint the WAL
+///     into it and delete the -wal and -shm files
 /// </summary>
 internal sealed class SqliteCopy : IDisposable
 {
@@ -20,9 +21,11 @@ internal sealed class SqliteCopy : IDisposable
 
     public SqliteConnection Connection { get; }
 
-    public static SqliteCopy Open(string path)
+    /// <param name="path">The database</param>
+    /// <param name="tempFolder">Where the copy's folder is made (null: the system's temp folder, for the tests)</param>
+    public static SqliteCopy Open(string path, string tempFolder = null)
     {
-        var folder = Path.Combine(Path.GetTempPath(), "WxTCmd-" + Guid.NewGuid().ToString("N"));
+        var folder = Path.Combine(tempFolder ?? Path.GetTempPath(), "WxTCmd-" + Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(folder);
 
         try
