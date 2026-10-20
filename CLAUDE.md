@@ -31,7 +31,7 @@ dotnet build -c Release                                          # WxTCmd.slnx
 dotnet test -c Release                                           # CI (test.yml); CorpusTests is [Explicit]
 dotnet test -c Release --filter "FullyQualifiedName~CorpusTests" # ../Corpus/WindowsTimeline (or WXTCMD_CORPUS)
 WXTCMD_FUZZ_ROUNDS=4000 dotnet test -c Release --filter Name~RandomDamage
-dotnet publish WxTCmd/WxTCmd.csproj -c Release -r win-x64 -p:PublishSingleFile=true
+dotnet publish WxTCmd/WxTCmd.csproj -c Release -r linux-x64 -o publish   # a build for one OS (LINUX.md)
 ```
 
 ## Tests
@@ -46,4 +46,4 @@ dotnet publish WxTCmd/WxTCmd.csproj -c Release -r win-x64 -p:PublishSingleFile=t
 - `<Version>` in the csproj, bumped by hand. The user builds, signs and releases it.
 - `.github/workflows/test.yml` builds and tests on pushes to `master` and PRs. Dependabot (`.github/dependabot.yml`) opens monthly PRs for GitHub Actions and NuGet updates.
 - Release builds are staged, signed and zipped by `Build-ZimmermanTools.ps1` in the get-zimmermantools repository (cloned next to this one). Its program table says what goes in this tool's download zip (the files taken from the build, folders copied from the repositories, files kept from the current release zip); a new output file, a content folder or a change in how the tool is built (single file, another framework) needs that entry updated.
-- WxTCmd is released as one exe (no Costura: the native SQLite library is inside it), with the `dotnet publish` command above (Build-ZimmermanTools adds `--self-contained false`).
+- WxTCmd is released like the other command line tools (Eric, 2026-10-20: single files are for the GUIs only; the command line tools stay cross platform and never extract anything on the user's machine): `WxTCmd.exe`, `WxTCmd.dll` (Costura: the managed dependencies inside it) and `WxTCmd.runtimeconfig.json` from `dotnet build`, run with the exe or `dotnet WxTCmd.dll` on any OS. The native SQLite library (SQLitePCLRaw's e_sqlite3, which Costura does not embed) ships as files next to it, one per OS with its own name: `e_sqlite3.dll` (win-x64), `libe_sqlite3.so` (linux-x64), `libe_sqlite3.dylib` (osx-arm64), copied by Build-ZimmermanTools from the build's `runtimes/<rid>/native` (`Natives` in its table). There is no deps.json in the release, so .NET finds them in the app folder (its first probe). The zip has no folder, so they land in Get-ZimmermanTools' shared `net` folder next to AmcacheParser's identical copies: keep Microsoft.Data.Sqlite (SQLitePCLRaw) at the same version as AmcacheParser's (Build-ZimmermanTools fails on differing files at the same path). Never set `IncludeNativeLibrariesForSelfExtract` or publish as a single file. LINUX.md says what Linux/macOS users need.
