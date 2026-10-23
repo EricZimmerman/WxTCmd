@@ -9,7 +9,7 @@ package IDs. Results are exported to CSV.
 | **Version** | 2026.10.0 |
 | **Download** | [.NET 10](https://download.ericzimmermanstools.com/net/WxTCmd.zip) |
 | **All tools** | [ericzimmerman.github.io](https://ericzimmerman.github.io) or [Get-ZimmermanTools](https://download.ericzimmermanstools.com/Get-ZimmermanTools.zip), which downloads them all and keeps them current |
-| **Changes** | [ChangeLog.txt](https://download.ericzimmermanstools.com/ChangeLog.txt) |
+| **Changes** | [ChangeLog](https://ericzimmerman.github.io/changelog/) |
 | **Issues** | [EricZimmerman/WxTCmd](https://github.com/EricZimmerman/WxTCmd/issues) or [EricZimmerman/Issues](https://github.com/EricZimmerman/Issues/issues) |
 
 ## Requirements
@@ -84,7 +84,7 @@ One CSV per table with rows: `<timestamp>_<user>_Activity.csv`, `_Activity_Packa
   ships next to it, so Linux and macOS work without building one.
 - New `--temp`. Exit code 1 when the tool fails (it was always 0). Error reports include source file and line numbers.
 
-The full list is in the [ChangeLog](https://download.ericzimmermanstools.com/ChangeLog.txt).
+The full list is in the [ChangeLog](https://ericzimmerman.github.io/changelog/).
 
 ## Building
 
