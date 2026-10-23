@@ -246,20 +246,21 @@ internal class Program
         {
             Log.Error("Error processing database: '{F}': {Message}", f, e.Message);
             Console.WriteLine();
-            return 1;
+            //not a SQLite database, or too damaged to read: a bad file, not the tool's fault (exit code 0)
+            return 0;
         }
         catch (Exception e)
         {
             Log.Error(e, "Error processing database: {Message}", e.Message);
             Console.WriteLine();
-            return 1;
+            //a damaged database is 0; a file that can't be read or copied (access denied, in use, IO errors) or an
+            //unexpected error is 1
+            return e is Microsoft.Data.Sqlite.SqliteException ? 0 : 1;
         }
         finally
         {
             TempFolder.RemoveIfEmpty(tempFolder, tempCreated);
         }
-
-        var exitCode = 0;
 
         if (data.QuickCheck != "ok")
         {
@@ -270,7 +271,8 @@ internal class Program
         {
             Log.Error("'{F}' has none of the Activity, ActivityOperation and Activity_PackageId tables. Is it an ActivitiesCache.db?", f);
             Console.WriteLine();
-            return 1;
+            //nothing to do (exit code 0)
+            return 0;
         }
 
         foreach (var table in ActivitiesCache.Tables)
@@ -292,8 +294,8 @@ internal class Program
 
         foreach (var error in data.TableErrors)
         {
+            //a damaged table: listed, what was read is written (exit code 0)
             Log.Error("Error processing {Error}", error);
-            exitCode = 1;
         }
 
         if (data.ParseErrors.Count > 0)
@@ -346,7 +348,7 @@ internal class Program
         Log.Information("Processing complete in {TotalSeconds:N4} seconds", sw1.Elapsed.TotalSeconds);
         Console.WriteLine();
 
-        return exitCode;
+        return 0;
     }
 
     private static string Time(DateTimeOffset? time, string dt)

@@ -136,7 +136,7 @@ public class CliTests : TestData
 
         var (code, output) = Run("-f", path, "--csv", Out);
 
-        code.Should().Be(1, output);
+        code.Should().Be(0, "a bad file is not the tool's fault: " + output);
         output.Should().Contain("not a SQLite database");
     }
 
@@ -147,8 +147,39 @@ public class CliTests : TestData
 
         var (code, output) = Run("-f", db, "--csv", Out);
 
-        code.Should().Be(1, output);
+        code.Should().Be(0, output);
         output.Should().Contain("Is it an ActivitiesCache.db?");
+    }
+
+    [Test]
+    public void CsvThatCantBeWrittenIsAnError()
+    {
+        //--csv is a file, so the folder can't be created
+        var file = Path.Combine(Dir, "a file");
+        File.WriteAllText(file, "x");
+
+        var (code, output) = Run("-f", Sample("plaso"), "--csv", file);
+
+        code.Should().Be(1, output);
+        output.Should().Contain("There was an error saving to");
+    }
+
+    [Test]
+    public void DatabaseThatCantBeReadIsAnError()
+    {
+        if (OperatingSystem.IsWindows() == false)
+        {
+            Assert.Ignore("Locking a file for everyone else is Windows only");
+        }
+
+        var db = Path.Combine(Dir, "locked", "ActivitiesCache.db");
+        Directory.CreateDirectory(Path.GetDirectoryName(db)!);
+        File.Copy(Sample("plaso"), db);
+
+        using (new FileStream(db, FileMode.Open, FileAccess.Read, FileShare.None))
+        {
+            Run("-f", db, "--csv", Out).ExitCode.Should().Be(1);
+        }
     }
 
     [Test]

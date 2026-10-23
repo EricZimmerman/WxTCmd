@@ -15,7 +15,7 @@ WxTCmd is a command line tool (`net10.0` only, for the native SQLite library) th
   - `Executable`: from the AppId JSON, the `windows_win32`/`x_exe_path` application, else `windows_universal`, else the first; a known folder GUID at the start is replaced by its name (unknown GUIDs are left alone).
   - `ContentUri`: URL decoded; a known folder GUID right after `file:` is named. Real ones are `file:///C:/...?VolumeId={...}&ObjectId={...}`, which 2026.5 mangled with fixed offsets.
   - `ClipboardText`: ClipboardPayload is a JSON array of `{"content": base64, "formatName": ...}`; the content of text formats (or entries without a format) that is valid UTF-8, joined with ` | ` (Issue #9; no real sample yet, the format is from Velociraptor's Windows.Forensics.Clipboard).
-- `Program.cs`: the CLI (`-f`, `--csv`, `--dt`). CSV names `<yyyyMMddHHmmss>_<user>_Activity.csv`, `_Activity_PackageIDs.csv`, `_ActivityOperations.csv` (user from a `Users` folder in the path). Exit codes: 0, or 1 for bad arguments, not a timeline database, a table error, or a CSV that could not be written. Value errors are listed but don't change the exit code.
+- `Program.cs`: the CLI (`-f`, `--csv`, `--dt`). CSV names `<yyyyMMddHHmmss>_<user>_Activity.csv`, `_Activity_PackageIDs.csv`, `_ActivityOperations.csv` (user from a `Users` folder in the path). Exit codes (Eric, 2026-10-22, all CLI tools): 1 only when the tool fails (bad arguments, a missing file, a database it can't read or copy, a --temp or CSV that can't be written, an unexpected error); a damaged database, not a SQLite or timeline database, table and value errors are listed and exit 0.
 
 ## Behavior to keep
 
