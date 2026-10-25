@@ -86,7 +86,7 @@ public class CliTests : TestData
         Hashes(Path.GetDirectoryName(db)!).Should().BeEquivalentTo(before);
 
         //the user name from the path (Users/user)
-        Directory.GetFiles(Out).Select(t => Path.GetFileName(t)[14..]).Should().BeEquivalentTo("_user_Activity.csv", "_user_Activity_PackageIDs.csv");
+        Directory.GetFiles(Out, "*.csv").Select(t => Path.GetFileName(t)[14..]).Should().BeEquivalentTo("_user_Activity.csv", "_user_Activity_PackageIDs.csv");
 
         //2026.5's columns in their order, then the new ones
         Header("_Activity.csv").Should().Equal(ActivityColumns2026_5.Concat(new[] { "AppActivityId", "ClipboardText" }));
@@ -111,18 +111,22 @@ public class CliTests : TestData
     [Test]
     public void ConsoleLog()
     {
-        //Issues #259: --co saves the console messages to <yyyyMMddHHmmss>_WxTCmd_<version>_ConsoleLog.txt in the --csv directory
+        //Issues #259: --co (on by default) saves the console messages to <yyyyMMddHHmmss>_WxTCmd_<version>_ConsoleLog.txt in the --csv directory
         var db = Database(new[] { ActivityRow(Guid.NewGuid()) }, new[] { OperationRow(1) });
 
-        var (code, output) = Run("-f", db, "--csv", Out);
+        var (code, output) = Run("-f", db, "--csv", Out, "--co", "false");
         code.Should().Be(0, output);
-        Directory.GetFiles(Out, "*_ConsoleLog.txt").Should().BeEmpty();
+        Directory.GetFiles(Out, "*_ConsoleLog.txt").Should().BeEmpty("--co false turns it off");
         output.Should().NotContain("Console log:");
 
-        (code, output) = Run("-f", db, "--csv", Out, "--co");
+        Directory.Delete(Out, true);
+        (code, output) = Run("-f", db, "--csv", Out);
         code.Should().Be(0, output);
-        var log = Directory.GetFiles(Out, "*_ConsoleLog.txt").Should().ContainSingle().Subject;
+        var log = Directory.GetFiles(Out, "*_ConsoleLog.txt").Should().ContainSingle("--co is on by default").Subject;
         Path.GetFileName(log).Should().MatchRegex(@"^\d{14}_WxTCmd_\d+\.\d+\.\d+_ConsoleLog\.txt$");
+        //the CSV names have the same (UTC) time as the log
+        var ts = Path.GetFileName(log)[..14];
+        Directory.GetFiles(Out, "*.csv").Should().NotBeEmpty().And.OnlyContain(t => Path.GetFileName(t).StartsWith(ts + "_"));
         output.Should().Contain("Console log: " + log);
         var text = File.ReadAllText(log);
         text.Should().MatchRegex(@"\[\d\d:\d\d:\d\d\.\d{3} INF\] WxTCmd version ");
@@ -255,7 +259,7 @@ public class CliTests : TestData
         var file = Path.Combine(Dir, "a file");
         File.WriteAllText(file, "x");
 
-        var (code, output) = Run("-f", Sample("plaso"), "--csv", Out, "--temp", Path.Combine(file, "temp"));
+        var (code, output) = Run("-f", Sample("plaso"), "--csv", Out, "--temp", Path.Combine(file, "temp"), "--co", "false");
 
         code.Should().Be(1, output);
         output.Should().Contain("Give one with --temp");

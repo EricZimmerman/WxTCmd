@@ -33,7 +33,7 @@ Options:
   --temp <temp>   Folder for the temporary copies of the SQLite databases, which are opened instead of the evidence and deleted when done. Default: a Temp folder next to WxTCmd. A folder that isn't there is created, and removed again when done. If that folder can't be written to, WxTCmd stops: give a writable folder with --temp
   --debug         Show debug information during processing
   --trace         Show trace information during processing
-  --co            Save all console messages to <timestamp>_WxTCmd_<version>_ConsoleLog.txt in the --csv directory
+  --co            When true, save all console messages to <timestamp>_WxTCmd_<version>_ConsoleLog.txt in the --csv directory. Use --co false to turn it off
   -?, -h, --help  Show help and usage information
   --version       Show version information
 ```
@@ -52,7 +52,8 @@ Database files are typically found at
 ## Output
 
 One CSV per table with rows: `<timestamp>_<user>_Activity.csv`, `_Activity_PackageIDs.csv` and
-`_ActivityOperations.csv` (the user name comes from a `Users` folder in the path). Times are UTC.
+`_ActivityOperations.csv` (the user name comes from a `Users` folder in the path; the timestamp is the UTC time the run
+started, the same as the console log's). Times are UTC.
 
 - The database is copied (with its `-wal` and `-journal`) to a temporary folder and only the copy is read, so the
   evidence is not changed. That folder is `--temp`, or by default a `Temp` folder next to WxTCmd (never the user's
@@ -63,7 +64,7 @@ One CSV per table with rows: `<timestamp>_<user>_Activity.csv`, `_Activity_Packa
   from base64.
 - A value that can't be read is listed in the console and the rest of the row is kept. A damaged database gives the
   rows that could be read.
-- With `--co`, everything written to the console is also saved, with times and levels, to
+- With `--co` (on by default; `--co false` turns it off), everything written to the console is also saved, with times and levels, to
   `<yyyyMMddHHmmss>_WxTCmd_<version>_ConsoleLog.txt` in the `--csv` directory (the time in the name is UTC).
 
 ## Exit codes
@@ -86,8 +87,9 @@ One CSV per table with rows: `<timestamp>_<user>_Activity.csv`, `_Activity_Packa
 - No longer writes `SQLite.Interop.dll` / `libSQLite.Interop.so` into the folder it is run from: the SQLite library
   ships next to it, so Linux and macOS work without building one.
 - New `--temp`. Exit code 1 when the tool fails (it was always 0). Error reports include source file and line numbers.
-- New `--co`: saves all console messages to `<timestamp>_WxTCmd_<version>_ConsoleLog.txt` in the `--csv` directory
-  (Issues #259). --debug and --trace show the time of each message again (they showed the --dt date) (2026.10.1)
+- New `--co` (on by default; `--co false` turns it off): saves all console messages to `<timestamp>_WxTCmd_<version>_ConsoleLog.txt` in the `--csv` directory
+  (Issues #259). CSV names use the UTC time, like the console log and the other tools (they used local time). --debug
+  and --trace show the time of each message again (they showed the --dt date) (2026.10.1)
 
 The full list is in the [ChangeLog](https://ericzimmerman.github.io/changelog/).
 
