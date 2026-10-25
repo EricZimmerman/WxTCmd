@@ -139,7 +139,8 @@ internal class Program
         {
             if (arg is DateTimeOffset dto)
             {
-                return dto.ToString(_activeDateTimeFormat);
+                //an explicit format (the log templates' {Timestamp:HH:mm:ss.fff}) wins over --dt
+                return dto.ToString(string.IsNullOrEmpty(format) ? _activeDateTimeFormat : format);
             }
 
             if (arg is IFormattable formattable)
@@ -189,7 +190,7 @@ internal class Program
         var consoleLog = co ? ConsoleLog.GetPath(DateTimeOffset.UtcNow, csv) : null;
         if (consoleLog != null)
         {
-            conf.WriteTo.File(consoleLog, outputTemplate: ConsoleLog.Template, formatProvider: ConsoleLog.Formatter(formatter));
+            conf.WriteTo.File(consoleLog, outputTemplate: ConsoleLog.Template, formatProvider: formatter);
         }
 
         Log.Logger = conf.CreateLogger();

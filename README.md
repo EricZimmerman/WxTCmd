@@ -87,7 +87,7 @@ One CSV per table with rows: `<timestamp>_<user>_Activity.csv`, `_Activity_Packa
   ships next to it, so Linux and macOS work without building one.
 - New `--temp`. Exit code 1 when the tool fails (it was always 0). Error reports include source file and line numbers.
 - New `--co`: saves all console messages to `<timestamp>_WxTCmd_<version>_ConsoleLog.txt` in the `--csv` directory
-  (Issues #259) (2026.10.1)
+  (Issues #259). --debug and --trace show the time of each message again (they showed the --dt date) (2026.10.1)
 
 The full list is in the [ChangeLog](https://ericzimmerman.github.io/changelog/).
 
