@@ -16,6 +16,7 @@ WxTCmd is a command line tool (`net10.0` only, for the native SQLite library) th
   - `ContentUri`: URL decoded; a known folder GUID right after `file:` is named. Real ones are `file:///C:/...?VolumeId={...}&ObjectId={...}`, which 2026.5 mangled with fixed offsets.
   - `ClipboardText`: ClipboardPayload is a JSON array of `{"content": base64, "formatName": ...}`; the content of text formats (or entries without a format) that is valid UTF-8, joined with ` | ` (Issue #9; no real sample yet, the format is from Velociraptor's Windows.Forensics.Clipboard).
 - `Program.cs`: the CLI (`-f`, `--csv`, `--dt`). CSV names `<yyyyMMddHHmmss>_<user>_Activity.csv`, `_Activity_PackageIDs.csv`, `_ActivityOperations.csv` (user from a `Users` folder in the path). Exit codes (Eric, 2026-10-22, all CLI tools): 1 only when the tool fails (bad arguments, a missing file, a database it can't read or copy, a --temp or CSV that can't be written, an unexpected error); a damaged database, not a SQLite or timeline database, table and value errors are listed and exit 0.
+- `--co` (Issues #259, all CLI tools, opt-in): `ConsoleLog.cs` adds a Serilog file sink, `<yyyyMMddHHmmss>_WxTCmd_<version>_ConsoleLog.txt` in the `--csv` directory (UTC time in the name; the CSV names still use local time), template `[HH:mm:ss.fff LVL] message`, same level switch as the console. `ConsoleLog.Formatter` wraps `DateTimeOffsetFormatter` so the file's `{Timestamp:HH:mm:ss.fff}` keeps its format (the tool's formatter gives every DateTimeOffset the `--dt` format).
 
 ## Behavior to keep
 

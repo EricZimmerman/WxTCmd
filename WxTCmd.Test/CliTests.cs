@@ -109,6 +109,27 @@ public class CliTests : TestData
     }
 
     [Test]
+    public void ConsoleLog()
+    {
+        //Issues #259: --co saves the console messages to <yyyyMMddHHmmss>_WxTCmd_<version>_ConsoleLog.txt in the --csv directory
+        var db = Database(new[] { ActivityRow(Guid.NewGuid()) }, new[] { OperationRow(1) });
+
+        var (code, output) = Run("-f", db, "--csv", Out);
+        code.Should().Be(0, output);
+        Directory.GetFiles(Out, "*_ConsoleLog.txt").Should().BeEmpty();
+        output.Should().NotContain("Console log:");
+
+        (code, output) = Run("-f", db, "--csv", Out, "--co");
+        code.Should().Be(0, output);
+        var log = Directory.GetFiles(Out, "*_ConsoleLog.txt").Should().ContainSingle().Subject;
+        Path.GetFileName(log).Should().MatchRegex(@"^\d{14}_WxTCmd_\d+\.\d+\.\d+_ConsoleLog\.txt$");
+        output.Should().Contain("Console log: " + log);
+        var text = File.ReadAllText(log);
+        text.Should().MatchRegex(@"\[\d\d:\d\d:\d\d\.\d{3} INF\] WxTCmd version ");
+        text.Should().Contain("Command line: -f ").And.Contain("Activity entries found: 1");
+    }
+
+    [Test]
     public void BadValuesAreListed()
     {
         var db = Database(new[] { ActivityRow(Guid.NewGuid()), ActivityRow(Guid.NewGuid(), ("AppId", "not json")) });

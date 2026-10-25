@@ -92,6 +92,11 @@ internal class Program
             Description = "Show trace information during processing",
             DefaultValueFactory = _ => false
         };
+        var coOpt = new Option<bool>("--co")
+        {
+            Description = "Save all console messages to <timestamp>_WxTCmd_<version>_ConsoleLog.txt in the --csv directory",
+            DefaultValueFactory = _ => false
+        };
 
         _rootCommand = new RootCommand
         {
@@ -100,13 +105,14 @@ internal class Program
             dtOpt,
             tempOpt,
             debugOpt,
-            traceOpt
+            traceOpt,
+            coOpt
         };
 
         _rootCommand.Description = Header + "\r\n\r\n" + Footer;
 
         _rootCommand.SetAction(result => DoWork(result.GetValue(fOpt), result.GetValue(csvOpt), result.GetValue(dtOpt),
-            result.GetValue(tempOpt), result.GetValue(debugOpt), result.GetValue(traceOpt)));
+            result.GetValue(tempOpt), result.GetValue(debugOpt), result.GetValue(traceOpt), result.GetValue(coOpt)));
 
         var exitCode = await _rootCommand.Parse(args).InvokeAsync();
 
@@ -154,7 +160,7 @@ internal class Program
         return 1;
     }
 
-    private static int DoWork(string f, string csv, string dt, string temp, bool debug, bool trace)
+    private static int DoWork(string f, string csv, string dt, string temp, bool debug, bool trace, bool co)
     {
         var levelSwitch = new LoggingLevelSwitch();
 
@@ -179,6 +185,12 @@ internal class Program
         var conf = new LoggerConfiguration()
             .WriteTo.Console(outputTemplate: template, formatProvider: formatter)
             .MinimumLevel.ControlledBy(levelSwitch);
+
+        var consoleLog = co ? ConsoleLog.GetPath(DateTimeOffset.UtcNow, csv) : null;
+        if (consoleLog != null)
+        {
+            conf.WriteTo.File(consoleLog, outputTemplate: ConsoleLog.Template, formatProvider: ConsoleLog.Formatter(formatter));
+        }
 
         Log.Logger = conf.CreateLogger();
 
@@ -217,6 +229,17 @@ internal class Program
         Console.WriteLine();
         Log.Information("Command line: {Args}", string.Join(" ", Environment.GetCommandLineArgs().Skip(1)));
         Console.WriteLine();
+
+        if (consoleLog != null)
+        {
+            Log.Information("Console log: {Path}", consoleLog);
+            Console.WriteLine();
+        }
+        else if (co)
+        {
+            Log.Warning("--co: no output directory was given, so the console messages are not saved");
+            Console.WriteLine();
+        }
 
         if (IsAdministrator() == false)
         {
