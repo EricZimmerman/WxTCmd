@@ -6,7 +6,7 @@ package IDs. Results are exported to CSV.
 
 | | |
 |---|---|
-| **Version** | 2026.10.1 |
+| **Version** | 2026.11.0 |
 | **Download** | [.NET 10](https://download.ericzimmermanstools.com/net/WxTCmd.zip) |
 | **All tools** | [ericzimmerman.github.io](https://ericzimmerman.github.io) or [Get-ZimmermanTools](https://download.ericzimmermanstools.com/Get-ZimmermanTools.zip), which downloads them all and keeps them current |
 | **Changes** | [ChangeLog](https://ericzimmerman.github.io/changelog/) |
@@ -73,6 +73,10 @@ started, the same as the console log's). Times are UTC.
 |---|---|
 | `0` | Success. Damaged databases, files that aren't timeline databases, and tables or values that can't be read are reported but are not a failure |
 | `1` | The tool failed: invalid arguments, a missing `-f` file, a database it can't read or copy, a `--temp` folder or CSVs that can't be written, or an unexpected error |
+
+## What's new in 2026.11
+
+- Moved to CsvHelper 34, a rewrite of the CSV library; the CSV output is byte for byte the same as 2026.10's.
 
 ## What's new in 2026.10
 
