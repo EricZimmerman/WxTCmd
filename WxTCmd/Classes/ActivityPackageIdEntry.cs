@@ -1,9 +1,14 @@
 using System;
+using CsvHelper;
 
 namespace WxTCmd.Classes;
 
-/// <summary>A row of the Activity_PackageId table</summary>
-public class ActivityPackageIdEntry
+/// <summary>
+///     A row of the Activity_PackageId table; its columns in the Activity_PackageIDs CSV, Expires in the --dt format. The
+///     columns are named because CsvHelper would otherwise take the names of the constructor's parameters (id, platform...)
+/// </summary>
+[CsvRecord]
+public partial class ActivityPackageIdEntry
 {
     public ActivityPackageIdEntry(string id, string platform, string name, string additionalInformation,
         DateTimeOffset? expires)
@@ -22,11 +27,13 @@ public class ActivityPackageIdEntry
         Expires = expires;
     }
 
-    public string Id { get; set; }
-    public string Platform { get; set; }
-    public string Name { get; set; }
-    public string AdditionalInformation { get; set; }
+    [CsvColumn("Id", Index = 0)] public string Id { get; set; }
+    [CsvColumn("Platform", Index = 1)] public string Platform { get; set; }
+    [CsvColumn("Name", Index = 2)] public string Name { get; set; }
+    [CsvColumn("AdditionalInformation", Index = 3)] public string AdditionalInformation { get; set; }
 
+    [CsvColumn("Expires", Index = 4)]
+    [CsvConverter(typeof(DateTimeFormatConverter))]
     public DateTimeOffset? Expires { get; set; }
 
     public override string ToString()

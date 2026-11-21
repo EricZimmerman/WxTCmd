@@ -14,7 +14,6 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using CsvHelper;
-using CsvHelper.Configuration;
 using Serilog;
 using Serilog.Core;
 using Serilog.Events;
@@ -339,19 +338,22 @@ internal class Program
 
             var ts1 = runTime.ToString("yyyyMMddHHmmss");
 
+            //--dt, for the time stamp columns
+            DateTimeFormatConverter.Format = dt;
+
             if (data.Operations.Count > 0)
             {
-                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_ActivityOperations.csv"), data.Operations, OperationMap(dt));
+                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_ActivityOperations.csv"), data.Operations, new ActivityOperationCsvWriter());
             }
 
             if (data.PackageIds.Count > 0)
             {
-                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_Activity_PackageIDs.csv"), data.PackageIds, PackageIdMap(dt));
+                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_Activity_PackageIDs.csv"), data.PackageIds);
             }
 
             if (data.Activities.Count > 0)
             {
-                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_Activity.csv"), data.Activities, ActivityMap(dt));
+                WriteCsv(Path.Combine(csv, $"{ts1}{userProfile}_Activity.csv"), data.Activities, new ActivityCsvWriter());
             }
         }
         catch (Exception ex)
@@ -373,100 +375,19 @@ internal class Program
         return 0;
     }
 
-    private static string Time(DateTimeOffset? time, string dt)
+    /// <summary>A CSV with the header and the rows, as CsvHelper 33 wrote them (UTF-8 with a BOM)</summary>
+    private static void WriteCsv<T>(string path, IEnumerable<T> rows, CsvRecordWriter<T> recordWriter = null)
     {
-        return time?.ToString(dt, CultureInfo.InvariantCulture) ?? "";
-    }
+        using var csvWriter = CsvWriter.ToFile(path, CsvOutput.Options with { WriteByteOrderMark = true });
 
-    private static void WriteCsv<T>(string path, IEnumerable<T> rows, ClassMap<T> map)
-    {
-        using var sw = new StreamWriter(path, false, Encoding.UTF8);
-        using var csvWriter = new CsvWriter(sw, CultureInfo.InvariantCulture);
-
-        csvWriter.Context.RegisterClassMap(map);
-
-        csvWriter.WriteHeader<T>();
-        csvWriter.NextRecord();
-        csvWriter.WriteRecords(rows);
-    }
-
-    /// <summary>The columns of 2026.5 in their order; new columns go at the end</summary>
-    internal static ClassMap<ActivityOperationEntry> OperationMap(string dt)
-    {
-        var map = new DefaultClassMap<ActivityOperationEntry>();
-
-        map.Map(t => t.Id).Index(0);
-        map.Map(t => t.ActivityTypeOrg).Index(1);
-        map.Map(t => t.ActivityType).Index(2);
-        map.Map(t => t.Executable).Index(3);
-        map.Map(t => t.DisplayText).Index(4);
-        map.Map(t => t.ContentInfo).Index(5);
-        map.Map(t => t.Payload).Index(6);
-        map.Map(t => t.ClipboardPayload).Index(7);
-        map.Map(t => t.StartTime).Convert(t => Time(t.Value.StartTime, dt)).Index(8);
-        map.Map(t => t.EndTime).Convert(t => Time(t.Value.EndTime, dt)).Index(9);
-        map.Map(t => t.Duration).Index(10);
-        map.Map(t => t.LastModifiedTime).Convert(t => Time(t.Value.LastModifiedTime, dt)).Index(11);
-        map.Map(t => t.LastModifiedTimeOnClient).Convert(t => Time(t.Value.LastModifiedTimeOnClient, dt)).Index(12);
-        map.Map(t => t.CreatedTime).Convert(t => Time(t.Value.CreatedTime, dt)).Index(13);
-        map.Map(t => t.ExpirationTime).Convert(t => Time(t.Value.ExpirationTime, dt)).Index(14);
-        map.Map(t => t.OperationExpirationTime).Convert(t => Time(t.Value.OperationExpirationTime, dt)).Index(15);
-        map.Map(t => t.OperationOrder).Index(16);
-        map.Map(t => t.AppId).Index(17);
-        map.Map(t => t.OperationType).Index(18);
-        map.Map(t => t.Description).Index(19);
-        map.Map(t => t.PlatformDeviceId).Index(20);
-        map.Map(t => t.DevicePlatform).Index(21);
-        map.Map(t => t.TimeZone).Index(22);
-        map.Map(t => t.AppActivityId).Index(23);
-        map.Map(t => t.ClipboardText).Index(24);
-
-        return map;
-    }
-
-    internal static ClassMap<ActivityPackageIdEntry> PackageIdMap(string dt)
-    {
-        var map = new DefaultClassMap<ActivityPackageIdEntry>();
-
-        map.Map(t => t.Id).Index(0);
-        map.Map(t => t.Platform).Index(1);
-        map.Map(t => t.Name).Index(2);
-        map.Map(t => t.AdditionalInformation).Index(3);
-        map.Map(t => t.Expires).Convert(t => Time(t.Value.Expires, dt)).Index(4);
-
-        return map;
-    }
-
-    internal static ClassMap<ActivityEntry> ActivityMap(string dt)
-    {
-        var map = new DefaultClassMap<ActivityEntry>();
-
-        map.Map(t => t.Id).Index(0);
-        map.Map(t => t.ActivityTypeOrg).Index(1);
-        map.Map(t => t.ActivityType).Index(2);
-        map.Map(t => t.Executable).Index(3);
-        map.Map(t => t.DisplayText).Index(4);
-        map.Map(t => t.ContentInfo).Index(5);
-        map.Map(t => t.Payload).Index(6);
-        map.Map(t => t.ClipboardPayload).Index(7);
-        map.Map(t => t.StartTime).Convert(t => Time(t.Value.StartTime, dt)).Index(8);
-        map.Map(t => t.EndTime).Convert(t => Time(t.Value.EndTime, dt)).Index(9);
-        map.Map(t => t.Duration).Index(10);
-        map.Map(t => t.LastModifiedTime).Convert(t => Time(t.Value.LastModifiedTime, dt)).Index(11);
-        map.Map(t => t.LastModifiedOnClient).Convert(t => Time(t.Value.LastModifiedOnClient, dt)).Index(12);
-        map.Map(t => t.OriginalLastModifiedOnClient).Convert(t => Time(t.Value.OriginalLastModifiedOnClient, dt)).Index(13);
-        map.Map(t => t.ExpirationTime).Convert(t => Time(t.Value.ExpirationTime, dt)).Index(14);
-        map.Map(t => t.CreatedInCloud).Convert(t => Time(t.Value.CreatedInCloud, dt)).Index(15);
-        map.Map(t => t.IsLocalOnly).Index(16);
-        map.Map(t => t.ETag).Index(17);
-        map.Map(t => t.PackageIdHash).Index(18);
-        map.Map(t => t.PlatformDeviceId).Index(19);
-        map.Map(t => t.DevicePlatform).Index(20);
-        map.Map(t => t.TimeZone).Index(21);
-        map.Map(t => t.AppActivityId).Index(22);
-        map.Map(t => t.ClipboardText).Index(23);
-
-        return map;
+        if (recordWriter == null)
+        {
+            csvWriter.WriteRecords(rows);
+        }
+        else
+        {
+            csvWriter.WriteRecords(rows, recordWriter);
+        }
     }
 
     private class CustomHelpAction : SynchronousCommandLineAction

@@ -20,7 +20,7 @@ WxTCmd is a command line tool (`net10.0` only, for the native SQLite library) th
 
 ## Behavior to keep
 
-- CSV columns: the class maps (`ActivityMap`, `OperationMap`, `PackageIdMap`) pin every column with `Index`: 2026.5's columns in their order, new ones at the end (`AppActivityId` from PR #7 / Issue #6, `ClipboardText`).
+- CSV columns (CsvHelper 34): `ActivityCsvWriter` and `ActivityOperationCsvWriter` (record writers, since `ActivityType` and `Duration` are computed) and `ActivityPackageIdEntry` (`[CsvRecord]`, every column named and indexed) list 2026.5's columns in their order, new ones at the end (`AppActivityId` from PR #7 / Issue #6, `ClipboardText`); `DateTimeFormatConverter.Format` is `--dt`. `CsvOutput.Options` keeps CsvHelper 33's bytes (True/False, quotes only for a comma, quote, CR/LF or a leading/trailing space, UTF-8 with a BOM).
 - Nothing is written next to the evidence or in the current folder (2026.5 wrote `SQLite.Interop.dll`/`libSQLite.Interop.so` there).
 
 ## Commands
